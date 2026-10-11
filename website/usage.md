@@ -37,3 +37,9 @@ The remote tool accepts numeric inputs only and has no private ChatGPT/Codex/acc
 With Python 3.11+ and compatible local records, request the local Codex weather or open the original Token Weather page. The page is unchanged. It can keep collecting after closing the tab; stop its service explicitly. Checkpoints use enrolled workflows and automatic chat moving stays off. The separate hooks package keeps normal /hooks review.
 
 See [Downloads](downloads.html), [Self-hosting](self-hosting.html), [Privacy](privacy.html) and [Support](support.html). Never send transcripts, credentials or identity documents to remote planning or public Issues.
+
+## Current main-source scenario UI
+
+The latest source has a dark weather dashboard with an Edit scenario entry, compact metrics, five-turn reference forecast and current/planned usage bars. Open Plan your next task for example selection and editable inputs. Comma-formatted integers and k/M suffixes work. A budget overage has a one-click task-size correction; unknown inputs have targeted completion guidance. Optional live updates and Copy summary simplify scenario comparison. The copied result follows your device clipboard controls.
+
+Use [the latest main source](https://github.com/FeidaWang/Token-Weather/archive/refs/heads/main.zip) for this refinement. Version remains 1.0.0; the original release ZIP/tag remain unchanged. Cost, quota, composition and real compaction timing are not invented from the scenario. The separate local observation tool remains the source of available Codex readings.

@@ -86,3 +86,7 @@ the item. Do not post private records/credentials or identity documents.
 The existing site uses GitHub hosting without publisher-added tracking/forms.
 GitHub's own provider processing and backups are outside publisher control.
 No Australian-only processing promise is made. A deployment operator must disclose their own actual service practices. The publisher website describes source software and does not host a budget MCP.
+
+## Scenario interface controls
+
+The current source UI keeps supplied values in browser memory for the open page; it creates no form-value database or browser localStorage. Optional live updating sends valid numeric inputs to the same local calculator after a short typing pause. Copy summary writes the current supplied-number result to the device clipboard only after the user presses Copy. Clipboard history or device synchronisation, if enabled by the user, follows those services' controls. The five weather images are bundled files, not third-party runtime requests. The demonstration screenshot published in the source/docs uses synthetic values; the user's reference screenshot and private audit comparisons are not published.

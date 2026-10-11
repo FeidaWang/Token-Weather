@@ -14,3 +14,7 @@ No paid model API, new subscription, purchase, cloud resource, upload or review 
 - Add a separate local-only inspect_local_context MCP and watch command to read compatible metrics and refresh advisory budgets.
 - Verify the native Python subprocess behind a real temporary TLS proxy, including certificate/hostname checks and all numeric cases. No public service is deployed.
 - Keep model/effort/chat control disabled until exact-owner and runtime-policy verification is available.
+
+## Main-source UI refinement (still 1.0.0)
+
+Add the dark weather dashboard, compact metrics, genuine supplied-history/forecast canvas with an exact-values table, weather scale, progressive-disclosure planner, formatted token entry, inline error recovery, one-click task reduction, optional live updates, clipboard summary and local-mode guide. Responsive and keyboard flows were checked; weather SVG assets include their upstream licence. The published v1.0.0 tag and ZIP are preserved. Get these source-only improvements from main.

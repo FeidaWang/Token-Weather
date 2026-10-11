@@ -1,29 +1,17 @@
-# Local rehearsal and review recording
+# Scenario planner walkthrough
 
-The included browser demo makes real MCP calls with synthetic numeric inputs.
-It is a local rehearsal, not the required intended-host review video.
+The current main source contains a dark weather interface. It makes real local MCP calls with supplied numbers. It is a browser planner, not an installed ChatGPT plugin or an automatic compaction controller. Version remains 1.0.0; the original v1.0.0 release ZIP and tag retain their original UI.
 
-Start `python3 -B mcp/demo/server.py --port 0` from the package root, then open
-the printed URL. Initialization, discovery and calculations are real. No paid
-model API or hosting is needed.
+1. Run `python3 -B mcp/demo/server.py --port 0` from the latest source root, then open the printed loopback URL. Default figures are a synthetic weather overview.
+2. Read the two-column metrics, history/forecast, current/planned usage and five-band weather scale. Until reference means linear reference crossing, not actual auto-compaction timing.
+3. Select Edit scenario or expand Plan your next task. Choose Next task for the 100000/65000/20000/5000 example; current headroom is 35000 and planned headroom 10000.
+4. Choose Task exceeds budget. The plan goes from 85000 to 110000 against 100000. Use 10k for the task to retain the 5000 reserve and fit exactly at the reference.
+5. Choose Unknown reference. Available arithmetic stays visible; Add reference limit opens and focuses the missing field. Blank values remain unknown; zero is an explicit value.
+6. Use whole counts, comma grouping, k/M suffixes and up to six compatible turn totals. Recent totals use comma-separated ungrouped counts/suffixes or one count per line. Their last total must match used tokens.
+7. Illegal counts receive an inline error and focused input. Last valid result labels prevent draft edits from being mistaken for a new calculation. Copying is disabled until a successful update.
+8. Optionally enable Update as I type. Valid edits recalculate after a short pause. Copy summary copies the current result to your clipboard only when clicked.
+9. Use local Codex readings opens a guide to the separate precisely bound local tool. Escape closes the dialog and returns focus. Developer details contains the actual numeric MCP exchange and a synthetic rejection check.
 
-1. **Next task:** show 100000 limit, 65000 used, 20000 increase and 5000 reserve;
-   read 35000 current headroom and 10000 planned headroom.
-2. **Five-turn outlook:** show compatible totals and all five projections.
-   Explain the assumption and unknown real compaction policy.
-3. **Over budget:** show zero remaining and planned overage 25000.
-4. **Unknown limit:** show Unknown headroom while planned usage remains 90000.
-5. **Rejected private fields:** use synthetic markers only; display the actual
-   rejection. No real transcript or API key is used.
-6. Expand Actual MCP request and response to inspect the tool call.
+Stop the demo with Ctrl+C. No paid model API, asset service or background installation is used. Original local weather/UI/hooks remain unchanged.
 
-Stop the demo with Ctrl+C. The original weather page uses another service and
-its own stop command. This does not install a plugin in ChatGPT or Codex.
-
-For review, later use an actual supported development connection in the intended
-host, the exact package version and the manifest prompts. Record readable prompts,
-tool calls/results, unknown data and boundaries. Keep private material off screen.
-Play back the recording and host it at the publisher's chosen accessible location.
-Add `review.demo_recording_url` only after verifying the actual video and access.
-A script, screenshot, local video or unverified URL does not complete it.
-No recording or video hosting was created here.
+For future directory review, record the actual intended-host connection/version rather than presenting this standalone harness as an installed host plugin. No public MCP or review submission is part of this UI update.

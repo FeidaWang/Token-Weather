@@ -4,7 +4,7 @@ MIT open-source 1.0.0. Maintained by Feida Wang, trading as RSI AI.
 
 Read available local Codex metrics, plan room for your next task, and deploy numeric planning on your own server. The publisher operates no shared budget MCP and no paid model API is called by this software.
 
-[Download 1.0.0](https://github.com/FeidaWang/Token-Weather/releases/download/v1.0.0/token-weather-open-source-1.0.0.zip) | [Source code](https://github.com/FeidaWang/Token-Weather) | [Release notes](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.0)
+[Get the latest source](https://github.com/FeidaWang/Token-Weather/archive/refs/heads/main.zip) | [Original 1.0.0 ZIP](https://github.com/FeidaWang/Token-Weather/releases/download/v1.0.0/token-weather-open-source-1.0.0.zip) | [Source code](https://github.com/FeidaWang/Token-Weather) | [Release notes](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.0)
 
 ## What it can do today
 
@@ -22,3 +22,5 @@ Run locally without a new subscription, or self-host on a server you choose. You
 The native Python backend passed an actual temporary loopback TLS-proxy test. Docker/Caddy, public DNS and existing Desktop controls are not claimed as verified.
 
 See [Usage](usage.html), [Self-hosting](self-hosting.html), [Automation](automation.html), [Downloads](downloads.html), [Privacy](privacy.html), [Support](support.html) and [Terms](terms.html).
+
+The current main source includes a refined dark weather scenario interface. See [Usage](usage.html) and [Downloads](downloads.html) for the source-only update; the original 1.0.0 release ZIP is preserved.

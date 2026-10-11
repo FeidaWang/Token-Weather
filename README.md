@@ -16,6 +16,16 @@ python3 -B mcp/demo/server.py --port 0
 
 Open the printed loopback URL. It makes real MCP calls with synthetic numbers. Ctrl+C stops it. No background service is installed and no dependency download is needed. To use a supported local MCP host, the root `mcp.json` declares the actual stdio command; registration is separate and is not performed by unpacking this archive.
 
+## Latest scenario interface on main
+
+The latest source keeps version 1.0.0 and adds a dark weather dashboard inspired by the project's existing visual language. The published v1.0.0 tag and release ZIP remain unchanged. To get this UI refinement, clone main or download [the latest source archive](https://github.com/FeidaWang/Token-Weather/archive/refs/heads/main.zip).
+
+![The supplied-number scenario planner](docs/images/scenario-planner.jpg)
+
+Use Edit scenario to open inputs; values such as 100,000, 100k and 1M are supported. The result shows current usage, recent growth, a five-turn reference forecast, the next-task budget and the complete arithmetic. A task exceeding the reference can be reduced to the available task size with one click. Unknown readings stay unknown, and the missing-input action focuses the required field. Optional live updates and Copy summary help you compare scenarios.
+
+The screenshot shows a synthetic sample, not live Codex telemetry. Cache, account quotas, monetary cost and context composition are not fabricated. Developer traces are collapsed, and the local-reading guide explains the separate stdio tool.
+
 ## Plan your next task
 
 When the tool is connected, say:
@@ -71,3 +81,5 @@ Source and downloads: https://github.com/FeidaWang/Token-Weather
 Website and current privacy/usage guides: https://feidawang.github.io/Token-Weather/
 
 Open-source distribution, user deployment and directory approval are separate states.
+
+Weather image assets in the updated UI are unmodified Google Noto Emoji SVGs, under their upstream Apache 2.0 asset licence. Attribution and licence are bundled in mcp/demo/assets/. The project software remains MIT licensed.
