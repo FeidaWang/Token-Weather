@@ -1,21 +1,18 @@
-<!doctype html>
-<html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Using Token Weather</title><link rel="stylesheet" href="style.css"></head><body><header><nav aria-label="Main navigation"><a href="index.html">Token Weather</a><a href="usage.html">Use</a><a href="privacy.html">Privacy</a><a href="support.html">Support</a><a href="terms.html">Terms</a></nav></header><main><h1>Using Token Weather</h1>
-<p>Token Weather gives a local Codex chat a weather-style estimate of how full it may be. The public skills-only package is version 1.0.0. Directory publication is being prepared; this documentation does not mean the plugin has been approved or is already available to install from the OpenAI directory.</p>
-<h2>Getting started</h2>
-<p>When Token Weather becomes available in the plugin directory, open Codex on your computer, find Token Weather in Plugins, install it and follow Set up. Local weather readings require Python 3.11 or later and access to a supported Codex chat record. ChatGPT in a web browser cannot read those local records.</p>
-<p>Once the plugin is installed, open the chat you want to check and ask: &quot;Show the weather for this chat.&quot;</p>
-<p>To open the single-page display on your computer, ask: &quot;Open my Token Weather page.&quot;</p>
-<p>The public package gives readings when asked and has no automatic lifecycle hooks or alerts. The separately distributed local package can use alerts after Codex&#x27;s normal /hooks trust review. Automatic chat moving stays off.</p>
-<h2>Reading the weather</h2>
-<p>Clear or Fair means there appears to be room left. Cloudy or Showers means the chat is getting fuller. Storm means it is near the reference limit. Clearing means Codex reported a real shortening event. Unknown means there is not enough verified information for a current reading.</p>
-<p>Chat space is an estimate. The history chart shows recent measurements; the five-turn outlook is a rough forecast, and a long tool result can make the chat grow faster than that forecast.</p>
-<p>The output tokens per second figure is a whole-turn average that includes tool waits. It is not the model&#x27;s writing speed. Account usage is a separate snapshot, available only when Codex provides it. Missing or stale measurements are not treated as zero.</p>
-<h2>Checkpoints</h2>
-<p>Checkpoints require an already enrolled project workflow. Ask: &quot;Save a checkpoint for this work.&quot; The notes can contain your task goal, requirements, decisions and evidence references. Asking for weather does not enrol a workflow or move work to another chat.</p>
-<h2>Stopping the page and removing local data</h2>
-<p>Closing the browser tab does not stop the local weather collector. Ask Codex to stop the Token Weather page service for the current chat, or use weather-service stop with that chat&#x27;s ID.</p>
-<p>After stopping its service or workflow writers, remove the confirmed Token Weather data files separately. The default weather directory is ~/.codex/state/token-weather; an enrolled workflow uses the project&#x27;s .codex/handover/&lt;workflow-id&gt; directory. Custom configuration can change the weather data location. Do not delete unrelated Codex files.</p>
-<p>Archiving a chat, deleting a chat or uninstalling the plugin does not automatically remove these separate files. Exported files and browser display preferences also need separate removal. The <a href="privacy.html">privacy policy</a> explains the data, retention and controls.</p>
-<h2>General support</h2>
-<p>Use <a href="https://github.com/FeidaWang/Token-Weather/issues">GitHub Issues</a> for general questions and bug reports. Issues are public: do not post private chats, unredacted logs, project files or credentials. Read the <a href="support.html">support information</a> before posting.</p>
-<p>The project uses the <a href="license.txt">MIT License</a>. The <a href="terms.html">terms of use</a> explain the limits and preserve rights that applicable law does not allow to be excluded.</p></main><footer>Token Weather 1.0.0 · Feida Wang trading as RSI AI · <a href="license.txt">MIT License</a></footer></body></html>
+<!doctype html><html lang="en-AU"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Use Token Weather</title><link rel="stylesheet" href="style.css"><main><nav><a href="index.html">Token Weather</a><a href="usage.html">Usage</a><a href="self-hosting.html">Self-host</a><a href="automation.html">Automation</a><a href="downloads.html">Download</a><a href="privacy.html">Privacy</a><a href="support.html">Support</a><a href="terms.html">Terms</a></nav><div class="draft">MIT open-source 1.0.0 · User-controlled deployment · Not directory-approved</div><h1>Use Token Weather</h1>
+<p>Open-source version 1.0.0. Source distribution is separate from directory approval.</p>
+<h2>Local numeric demonstration</h2>
+<p>Use an existing Python 3.9+ runtime, unpack the release ZIP, then run from its root:</p>
+<pre><code>python3 -B mcp/demo/server.py --port 0</code></pre>
+<p>Open the printed local URL. The browser calls the real MCP using synthetic numbers. Stop with Ctrl+C. No new subscription or paid model API is needed.</p>
+<h2>Automatic local Codex observations</h2>
+<p>The local stdio entry point exposes inspect_local_context in addition to numeric planning. Bind the exact root ID and matching absolute workspace from trusted host metadata. Local parsing needs Python 3.11+. Do not select the latest unrelated chat.</p>
+<p>In your current Codex project, with CODEX_THREAD_ID correctly set, refresh local observations:</p>
+<pre><code>python3 /path/to/source/scripts/local-observe.py --workspace . --watch --interval 5</code></pre>
+<p>Replace the documentation path with your actual source location; provide --thread when no correct host binding is available. Ctrl+C stops it. The reader returns available usage estimates, model/effort, cache information, output average and account windows. It returns no messages, IDs or paths, and updates advisory budgets only. Missing/stale observations cannot drive current advice.</p>
+<p>A suggested output reserve is a labelled heuristic based on observed output, not a model output limit or monetary guarantee. Model, effort and automatic chat-switching controls are disabled; see <a href="automation.html">Automation</a>.</p>
+<h2>Numeric task planning</h2>
+<p>When your planning MCP is connected, provide a reference of 100000, usage of 65000, a task increase of 20000 and output reserve of 5000. It returns current headroom 35000, planned usage 90000 and planned headroom 10000. Keep the output reserve separate. A five-turn outlook needs three to six compatible chronological totals; the last matches current usage.</p>
+<p>The remote tool accepts numeric inputs only and has no private ChatGPT/Codex/account access. Platform/model names do not establish usage or a limit.</p>
+<h2>Optional original local weather page</h2>
+<p>With Python 3.11+ and compatible local records, request the local Codex weather or open the original Token Weather page. The page is unchanged. It can keep collecting after closing the tab; stop its service explicitly. Checkpoints use enrolled workflows and automatic chat moving stays off. The separate hooks package keeps normal /hooks review.</p>
+<p>See <a href="downloads.html">Downloads</a>, <a href="self-hosting.html">Self-hosting</a>, <a href="privacy.html">Privacy</a> and <a href="support.html">Support</a>. Never send transcripts, credentials or identity documents to remote planning or public Issues.</p><footer>Feida Wang, trading as RSI AI · MIT source · No publisher-hosted budget service</footer></main></html>
