@@ -83,3 +83,9 @@ Website and current privacy/usage guides: https://feidawang.github.io/Token-Weat
 Open-source distribution, user deployment and directory approval are separate states.
 
 Weather image assets in the updated UI are unmodified Google Noto Emoji SVGs, under their upstream Apache 2.0 asset licence. Attribution and licence are bundled in mcp/demo/assets/. The project software remains MIT licensed.
+
+## Sidebar and zoom behaviour
+
+The main-source UI uses the available width and height. Its normal overview fits one page at tested sizes from 320x640 through 640x900, including 400x800 and 480x800. Wide side pages use columns. Repeated explanations are consolidated, while meaningful numerical values and a readable forecast remain visible. Edit scenario, Totals and Details open dialogs on the same page instead of extending the document. Done/Escape returns to the overview.
+
+Very small effective viewports, large zoom or unusually complex error/overage content can require vertical scrolling. Nothing is clipped to force a fit. The original release ZIP/tag is unchanged; use current main source for this layout. Effective viewport tests do not promise every host/browser zoom combination.
