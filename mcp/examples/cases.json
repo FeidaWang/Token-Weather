@@ -1,0 +1,47 @@
+[
+  {
+    "name": "ordinary_headroom",
+    "arguments": {"reference_limit_tokens": 100000, "used_tokens": 65000},
+    "expected": {"current.remaining_tokens": 35000, "current.weather": "Cloudy", "plan.after.used_tokens": null}
+  },
+  {
+    "name": "task_and_output_reserve",
+    "arguments": {
+      "reference_limit_tokens": 100000, "used_tokens": 65000,
+      "planned_increase_tokens": 20000, "reserved_output_tokens": 5000,
+      "sources": {"used_tokens": "supplied_measurement", "planned_increase_tokens": "assumed", "reserved_output_tokens": "assumed"}
+    },
+    "expected": {"current.remaining_tokens": 35000, "plan.added_tokens": 25000, "plan.after.used_tokens": 90000, "plan.after.remaining_tokens": 10000, "plan.fits_reference": true}
+  },
+  {
+    "name": "already_over_budget",
+    "arguments": {"reference_limit_tokens": 100000, "used_tokens": 110000, "planned_increase_tokens": 10000, "reserved_output_tokens": 5000},
+    "expected": {"current.remaining_tokens": 0, "current.over_budget_tokens": 10000, "current.fraction": 1.1, "plan.after.over_budget_tokens": 25000, "plan.fits_reference": false}
+  },
+  {
+    "name": "five_turn_forecast",
+    "arguments": {"reference_limit_tokens": 100000, "used_tokens": 65000, "recent_turn_tokens": [45000, 55000, 65000]},
+    "expected": {"growth.tokens_per_turn": 10000, "growth.intervals": 2, "growth.turns_until_reference": 4, "growth.forecast.0.budget.used_tokens": 75000, "growth.forecast.4.budget.used_tokens": 115000, "growth.forecast.4.budget.over_budget_tokens": 15000}
+  },
+  {
+    "name": "partial_unknown_limit",
+    "arguments": {"used_tokens": 65000, "planned_increase_tokens": 20000, "reserved_output_tokens": 5000},
+    "expected": {"current.remaining_tokens": null, "current.weather": "Unknown", "plan.after.used_tokens": 90000, "plan.fits_reference": null}
+  },
+  {
+    "name": "reject_private_chat_or_quota_request",
+    "arguments": {"current_chat": true, "account_quota": true},
+    "isError": true
+  },
+  {
+    "name": "reject_message_or_credential_payload",
+    "arguments": {"messages": ["SYNTHETIC-PRIVATE-TEXT"], "api_key": "SYNTHETIC-CREDENTIAL"},
+    "isError": true,
+    "must_not_echo": ["SYNTHETIC-PRIVATE-TEXT", "SYNTHETIC-CREDENTIAL", "messages", "api_key"]
+  },
+  {
+    "name": "reject_zero_reference",
+    "arguments": {"reference_limit_tokens": 0, "used_tokens": 65000},
+    "isError": true
+  }
+]

@@ -1,0 +1,19 @@
+[project]
+name = "token-weather-for-codex"
+version = "1.0.0"
+description = "Reference token budgets and optional local Codex context weather"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+token-weather = "token_weather.cli:main"
+
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+token_weather = ["assets/*.html"]

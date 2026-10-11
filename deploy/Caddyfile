@@ -1,0 +1,9 @@
+{$MCP_HOST} {
+    @mcp path /mcp
+    handle @mcp {
+        reverse_proxy mcp:8000
+    }
+    handle {
+        respond "Not found" 404
+    }
+}

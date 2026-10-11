@@ -1,25 +1,19 @@
 ---
 name: Bug report
-about: Report a Token Weather problem using non-sensitive details.
+about: Report a reproducible Token Weather issue with synthetic or redacted details
+title: ""
+labels: bug
+assignees: ""
 ---
 
-This issue is public. Do not include chat transcripts, private project files,
-unredacted logs, passwords, API keys, identity documents or local service tokens.
+## Version and mode
 
-## Versions
+Open-source version, operating system and mode: local budget, self-hosted budget or optional Codex weather.
 
-- Token Weather:
-- Operating system:
-- Codex:
+## Expected and actual result
 
-## What happened
+For arithmetic use synthetic values only. Describe the result, including unknown fields or overage.
 
-Describe the problem and the result you expected.
+## Minimal reproduction
 
-## Steps to reproduce
-
-Give the smallest steps using non-sensitive example data.
-
-## Optional sanitised details
-
-Provide a short sanitised error message or redacted screenshot only if needed.
+Do not attach full chats, JSONL, private paths, credentials, unredacted logs or identity documents. For self-hosting, name components/versions without secrets. Your issue will be public.

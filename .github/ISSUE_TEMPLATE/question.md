@@ -1,15 +1,11 @@
 ---
 name: General question
-about: Ask a general question about using Token Weather.
+about: Ask about numeric planning, local use or your own deployment
+title: ""
+labels: question
+assignees: ""
 ---
-
-This issue is public. Do not include personal records, private chat content,
-unredacted logs, credentials or identity documents.
 
 ## Question
 
-Describe your question using the minimum non-sensitive context.
-
-## Version and environment
-
-Include the Token Weather and Codex versions if relevant.
+Describe the mode and version. Use synthetic numbers where possible. Your question is public; do not include chats, credentials or identity information. This project does not offer email support or managed hosting.

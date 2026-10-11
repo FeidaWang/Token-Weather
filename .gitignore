@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.codex/
+.env*
+*.pem
+*.key
+*.p12
+*.zip
+mcp.remote.json
+native-deployment-test.json

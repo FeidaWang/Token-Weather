@@ -1,0 +1,238 @@
+{
+  "command": [
+    "app-server",
+    "generate-json-schema",
+    "--out",
+    "schemas/runtime-0.160.0"
+  ],
+  "engine_path": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+  "engine_version": "codex-cli 0.160.0",
+  "experimental": false,
+  "files": [
+    {
+      "path": "schemas/runtime-0.160.0/v1/InitializeResponse.json",
+      "sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v1/InitializeParams.json",
+      "sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadStartResponse.json",
+      "sha256": "70d9c9a3a064edb76662ec7cd066d142ed9252b768272bc3a7d00788386755c0"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ConfigReadParams.json",
+      "sha256": "257c54a423b47c1d209ff1076765a1564d82322fd5161670fd489a2874de1bac"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/TurnStartParams.json",
+      "sha256": "2dfcf68705896fadc344ccfeb2e9fe5a6bcbbb8b9a90cf449ce232b636daf05a"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ConfigReadResponse.json",
+      "sha256": "69a32e3d84e16045802dff8abf01770d759ebc758965c3258a30ea4a93159fce"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadStartParams.json",
+      "sha256": "e9c6d3cc18d049bfbc0249add3808fb8e5a27e1a0b5a423767aafbc3859a9428"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/TurnCompletedNotification.json",
+      "sha256": "016870158603b0f84bd9f8f65f927161c9fd5128e5ec632087616462dc44e085"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/HookStartedNotification.json",
+      "sha256": "913ca61da2ab299d5f3318f6ea4d842d22708fc9308a9b10cdfad5e757098f2f"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadReadParams.json",
+      "sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadTokenUsageUpdatedNotification.json",
+      "sha256": "aba4f6c7e4a19b2b842c08ee793b57000c07dafd57b922ad0d8e7c76609108c2"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadLoadedListResponse.json",
+      "sha256": "1ea02c4710083e552b2a3a89b931b9049d5bf05b7db46278b8352cf9fd80cd52"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/HooksListParams.json",
+      "sha256": "07638c3a8a3690cf368fa92c7ff697fdd0132865e8c59d53f6e5789e5a260053"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadArchiveParams.json",
+      "sha256": "dc2c0b133b814a5d9d543cc37afdb3f4f22feca35b7cea4272834b20a1e47705"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadReadResponse.json",
+      "sha256": "3a0aaf9cff80796d07130b85723ca825f9203796d15c878f452083cf9f9a6f0a"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/HookCompletedNotification.json",
+      "sha256": "1f146d70303cea6e59752191179e36a273650d63a74d4f9338f9a399da6597d2"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadUnarchiveParams.json",
+      "sha256": "a1d5d847b61ea16ab09d5b9d1c1461134a7829292aae02a7e11b0a69b00c76ca"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/TurnStartResponse.json",
+      "sha256": "12c5151421bb061297c9790ff795a44aa4b9bdb91fbb68012dcf0a08cf4198b1"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadLoadedListParams.json",
+      "sha256": "42c2d124ab2b2998d84f0126daae2d32b0bf9c5a7ea7266e3a0814e5e37cf00d"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/HooksListResponse.json",
+      "sha256": "891dd10ef7f78e59631fce05fff2becddb8004b3c0338dbbbd6b4f17ef1fa64f"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/TurnInterruptParams.json",
+      "sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ConfigRequirementsReadResponse.json",
+      "sha256": "0ea97959b59322ec8901c79bf597b7241f42a10fe11034a4d86b3a6b044a43df"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ThreadSettingsUpdatedNotification.json",
+      "sha256": "1decdf57238a1573ffbbf0bf695acba50888c1580e44670471dd88bfc2bd540f"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ModelReroutedNotification.json",
+      "sha256": "37cd3c1b3a3560b85b01d4061a07d830fc9ed93b80e4663f975f9197cdb501ef"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/TurnStartedNotification.json",
+      "sha256": "2e9a109ee549c1e266223304c9e0580075cda03feb65473363b124f18e9a3769"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ItemStartedNotification.json",
+      "sha256": "7574788d2a352747f50d44be3ef649011cb8de8069da4c655faff14d0aee32c4"
+    },
+    {
+      "path": "schemas/runtime-0.160.0/v2/ItemCompletedNotification.json",
+      "sha256": "d04b9153de38cd8302a2a418a44a65e8265d4c7586d46ea2cc801b594c6acf5b"
+    }
+  ],
+  "generated_at": "2026-10-03T10:07:25.532Z",
+  "note": "Generated by installed engine. Config hook input recognition/execution remains NOT TESTED.",
+  "usage_schema_generation": {
+    "engine_version": "codex-cli 0.160.0",
+    "command": [
+      "app-server",
+      "generate-json-schema",
+      "--out",
+      "TEMPORARY_DIRECTORY"
+    ],
+    "note": "Additional usage lifecycle/settings schemas generated from the same installed engine; no inference or trust changes."
+  },
+  "control_schema_generation": {
+    "engine_version": "codex-cli 0.160.0",
+    "experimental": true,
+    "command": [
+      "app-server",
+      "generate-json-schema",
+      "--experimental",
+      "--out",
+      "TEMPORARY_DIRECTORY"
+    ],
+    "generated_at": "2026-10-03T13:48:14.221762+00:00",
+    "files": [
+      {
+        "path": "schemas/runtime-0.160.0/v2/ThreadBackgroundTerminalsListParams.json",
+        "sha256": "7ac232410d59afd308dca04f8c0b08f20fa6e87f00bd0d3b5892b7ce8b31d2ee"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/v2/ThreadBackgroundTerminalsListResponse.json",
+        "sha256": "b56b1cbcb1d60079ee9f9caaeef29cad869a25b4a6d356566f7c9f672faa7bf4"
+      }
+    ],
+    "note": "Experimental read-only background inventory payloads. No process clean/terminate or private API used."
+  },
+  "continuation_schema_generation": {
+    "engine_version": "codex-cli 0.160.0",
+    "experimental": true,
+    "command": [
+      "app-server",
+      "generate-json-schema",
+      "--experimental",
+      "--out",
+      "TEMPORARY_DIRECTORY"
+    ],
+    "generated_at": "2026-10-03T14:31:57.839877+00:00",
+    "files": [
+      {
+        "path": "schemas/runtime-0.160.0/experimental/ThreadStartResponse.json",
+        "sha256": "92f5ddc37717b922de1dc0b0405e9a6d463f370554e2091610c6e595bc2616d4"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/experimental/ThreadStartParams.json",
+        "sha256": "80a40a7fac15b4bf70efb7f893fb353acc0a0d30c68f54aee4f01923deca85de"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/experimental/ThreadSettingsUpdatedNotification.json",
+        "sha256": "5e0f512bcca5fbf3cfea9f13574928ad26e790d5bc765ea92cd024a7ac96f86e"
+      }
+    ],
+    "note": "Profile provenance in live thread/start and settings; stable schema snapshots are preserved."
+  },
+  "owner_state_schema_generation": {
+    "engine_version": "codex-cli 0.160.0",
+    "generated_at": "2026-10-03T16:17:27.004506+00:00",
+    "experimental": true,
+    "command": [
+      "app-server",
+      "generate-json-schema",
+      "--experimental",
+      "--out",
+      "TEMPORARY_DIRECTORY"
+    ],
+    "files": [
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ClientRequest.json",
+        "sha256": "4a6fc883c2e84c4721bfabd6756ca5bb6e99675a8938768d8bc9cc67ff984700"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ServerNotification.json",
+        "sha256": "28a42039eee1c3f45c92b6cf07111bacf6de2716f4d3365ff53ad65507fef00c"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadItemsListParams.json",
+        "sha256": "d5cf9784413f1d1abba756e04e48b273a9d12ab2c5675442e91b6a4ee55e19f0"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadItemsListResponse.json",
+        "sha256": "bc8a8dcb9a48d9ca38b0a5faa89b80ec2fd57398cd3a8dcc15097776153f6c74"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadListParams.json",
+        "sha256": "5daf371b2852c409d4405c95f79cddb2d92a1ee89da808b2c5112ef16a57432c"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadListResponse.json",
+        "sha256": "70d0fb1a5d747515459317281d9aa654e930122a174e8535c56de83b9f3b5dcf"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadReadResponse.json",
+        "sha256": "2af6b987644cfb23e6f408f3cfb29e73ad6255ba2294366d36d56aeabe3854da"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadSettingsUpdatedNotification.json",
+        "sha256": "5e0f512bcca5fbf3cfea9f13574928ad26e790d5bc765ea92cd024a7ac96f86e"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadTurnsListParams.json",
+        "sha256": "2a8b93d7d4437cc25e16a1dde16d8db3c338d39e16c5eece2a56e943a21577d7"
+      },
+      {
+        "path": "schemas/runtime-0.160.0/owner-state/ThreadTurnsListResponse.json",
+        "sha256": "8db83d38553204a223cf349680c59b0cc674ba95a4637e1995bfeabd73c80219"
+      }
+    ],
+    "note": "Protocol shape audit only; method availability and completeness require separate native evidence."
+  }
+}

@@ -1,0 +1,30 @@
+services:
+  mcp:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      TOKEN_WEATHER_PUBLIC_ORIGIN: "https://${MCP_HOST:?Set your own public MCP hostname}"
+    expose:
+      - "8000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    restart: unless-stopped
+  proxy:
+    image: caddy:2
+    environment:
+      MCP_HOST: "${MCP_HOST:?Set your own public MCP hostname}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - proxy_data:/data
+      - proxy_config:/config
+    depends_on: [mcp]
+    restart: unless-stopped
+volumes:
+  proxy_data:
+  proxy_config:

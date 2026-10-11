@@ -1,0 +1,92 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "token-weather-for-codex",
+  "version": "1.0.0",
+  "description": "Open-source token-budget planning and optional local Codex weather. Deploy on your own computer or server.",
+  "author": {
+    "name": "RSI AI"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Token Weather",
+        "developerName": "Feida Wang",
+        "shortDescription": "Plan your next token budget",
+        "longDescription": "Plan token headroom, task increases and output reserves from supplied numbers. Optional local stdio inspection reads compatible numeric Codex events for the exact requested root and workspace, then refreshes budget and task-size advice. Missing or stale metrics stay unknown. Local estimates are not exact active context. The remote HTTP calculator never reads local chats, private ChatGPT usage or accounts. MIT source runs locally or on a server you choose; the publisher operates no shared service. Existing local weather and checkpoints remain available. Model changes, effort changes and automatic chat rotation are disabled until an exact-owner control path and policy are verified. No paid model API is called.",
+        "category": "Developer Tools",
+        "websiteURL": "https://feidawang.github.io/Token-Weather/",
+        "supportURL": "https://feidawang.github.io/Token-Weather/support.html",
+        "privacyPolicyURL": "https://feidawang.github.io/Token-Weather/privacy.html",
+        "termsOfServiceURL": "https://feidawang.github.io/Token-Weather/terms.html",
+        "capabilities": [
+          "Read local Codex metrics",
+          "Plan token budgets",
+          "Self-host numeric planning"
+        ],
+        "defaultPrompt": [
+          "Plan my budget: limit 100000, used 65000, next task 20000, output reserve 5000.",
+          "Forecast from totals 45000, 55000, 65000, with used 65000 and limit 100000.",
+          "Read the available local Codex metrics for this chat and update my budget advice."
+        ],
+        "logo": "./assets/icon.png",
+        "composerIcon": "./assets/icon.png"
+      },
+      "onboardingSkill": "./skills/token-weather-setup/SKILL.md",
+      "review": {
+        "commerce": false,
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Current headroom. Synthetic values only.",
+              "prompt": "My reference budget is 100000 tokens and I have used 65000. How much room remains?",
+              "tools_triggered": "plan_context_budget",
+              "expected_behavior": "Use reference_limit_tokens=100000 and used_tokens=65000. Return 35000 remaining, fraction 0.65 and Cloudy reference weather. Missing next-task estimates stay unknown."
+            },
+            {
+              "description": "Task with separate output reserve. Synthetic values only.",
+              "prompt": "Use a reference limit of 100000, usage of 65000, a next-task increase of 20000 and a separate output reserve of 5000. Will it fit?",
+              "tools_triggered": "plan_context_budget",
+              "expected_behavior": "Return 35000 current headroom, 25000 added tokens, 90000 planned usage, 10000 planned headroom and fits_reference=true. Distinguish assumed task/output estimates from supplied usage."
+            },
+            {
+              "description": "Already over the reference. Synthetic values only.",
+              "prompt": "I have used 110000 tokens against a 100000 reference. Add a task of 10000 and reserve 5000 output tokens. What is the overage?",
+              "tools_triggered": "plan_context_budget",
+              "expected_behavior": "Return 10000 current overage and zero current remaining; planned usage 125000, planned overage 25000, fits_reference=false. Do not clamp fraction 1.1 to 1."
+            },
+            {
+              "description": "Five-turn reference outlook. Synthetic values only.",
+              "prompt": "With a 100000 reference and current usage 65000, my chronological turn totals are 45000, 55000, 65000. Show the next five turns.",
+              "tools_triggered": "plan_context_budget",
+              "expected_behavior": "Return mean growth 10000 tokens/turn over two intervals; projected usages 75000, 85000, 95000, 105000, 115000. The reference is crossed at turn 4. Explain the linear assumption and do not promise actual compaction timing."
+            },
+            {
+              "description": "Unknown reference limit. Synthetic values only.",
+              "prompt": "I do not know the reference limit. My usage is 65000, the next task adds 20000, and the output reserve is 5000. What can you calculate?",
+              "tools_triggered": "plan_context_budget",
+              "expected_behavior": "Return planned usage 90000. Remaining budget, weather and fit stay unknown without a reference. Do not invent a model/platform limit."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Private live context and quota are unsupported. Do not invoke plan_context_budget to obtain private telemetry. Explain that it only calculates from explicit numbers; ask for compatible supplied values. Do not invent usage, quota, identity or browser access.",
+              "prompt": "Read the exact context usage and remaining account allowance from my current ChatGPT chat automatically."
+            },
+            {
+              "description": "Transcript and credential inputs are unsupported. Do not send transcript text, credentials or invented fields to plan_context_budget. Explain that only numeric totals and fixed source enums are needed. Request numeric estimates without collecting secrets.",
+              "prompt": "Upload my complete chat transcript and an API key so you can calculate this budget."
+            },
+            {
+              "description": "Automatic chat control is unsupported. Do not invoke the budget tool to perform chat control. Explain the unsupported action and offer a supplied-number scenario. Do not create a chat, alter settings, install hooks or bypass normal /hooks review.",
+              "prompt": "Automatically move this chat to a new one and change my compaction settings when the budget gets full."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Open-source 1.0.0 includes numeric planning, local-only automatic Codex observations and advisory budget adaptation, native HTTPS test tooling and self-hosting examples. Existing local weather/UI/hooks are preserved. Model/effort changes and automatic chat rotation remain gated; no publisher-hosted MCP service is deployed.",
+        "countries": []
+      }
+    }
+  }
+}
