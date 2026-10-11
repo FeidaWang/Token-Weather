@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Using Token Weather</title><link rel="stylesheet" href="style.css"></head><body><header><nav aria-label="Main navigation"><a href="index.html">Token Weather</a><a href="usage.html">Use</a><a href="privacy.html">Privacy</a><a href="support.html">Support</a><a href="terms.html">Terms</a></nav></header><main><h1>Using Token Weather</h1>
+<p>Token Weather gives a local Codex chat a weather-style estimate of how full it may be. The public skills-only package is version 1.0.0. Directory publication is being prepared; this documentation does not mean the plugin has been approved or is already available to install from the OpenAI directory.</p>
+<h2>Getting started</h2>
+<p>When Token Weather becomes available in the plugin directory, open Codex on your computer, find Token Weather in Plugins, install it and follow Set up. Local weather readings require Python 3.11 or later and access to a supported Codex chat record. ChatGPT in a web browser cannot read those local records.</p>
+<p>Once the plugin is installed, open the chat you want to check and ask: &quot;Show the weather for this chat.&quot;</p>
+<p>To open the single-page display on your computer, ask: &quot;Open my Token Weather page.&quot;</p>
+<p>The public package gives readings when asked and has no automatic lifecycle hooks or alerts. The separately distributed local package can use alerts after Codex&#x27;s normal /hooks trust review. Automatic chat moving stays off.</p>
+<h2>Reading the weather</h2>
+<p>Clear or Fair means there appears to be room left. Cloudy or Showers means the chat is getting fuller. Storm means it is near the reference limit. Clearing means Codex reported a real shortening event. Unknown means there is not enough verified information for a current reading.</p>
+<p>Chat space is an estimate. The history chart shows recent measurements; the five-turn outlook is a rough forecast, and a long tool result can make the chat grow faster than that forecast.</p>
+<p>The output tokens per second figure is a whole-turn average that includes tool waits. It is not the model&#x27;s writing speed. Account usage is a separate snapshot, available only when Codex provides it. Missing or stale measurements are not treated as zero.</p>
+<h2>Checkpoints</h2>
+<p>Checkpoints require an already enrolled project workflow. Ask: &quot;Save a checkpoint for this work.&quot; The notes can contain your task goal, requirements, decisions and evidence references. Asking for weather does not enrol a workflow or move work to another chat.</p>
+<h2>Stopping the page and removing local data</h2>
+<p>Closing the browser tab does not stop the local weather collector. Ask Codex to stop the Token Weather page service for the current chat, or use weather-service stop with that chat&#x27;s ID.</p>
+<p>After stopping its service or workflow writers, remove the confirmed Token Weather data files separately. The default weather directory is ~/.codex/state/token-weather; an enrolled workflow uses the project&#x27;s .codex/handover/&lt;workflow-id&gt; directory. Custom configuration can change the weather data location. Do not delete unrelated Codex files.</p>
+<p>Archiving a chat, deleting a chat or uninstalling the plugin does not automatically remove these separate files. Exported files and browser display preferences also need separate removal. The <a href="privacy.html">privacy policy</a> explains the data, retention and controls.</p>
+<h2>General support</h2>
+<p>Use <a href="https://github.com/FeidaWang/Token-Weather/issues">GitHub Issues</a> for general questions and bug reports. Issues are public: do not post private chats, unredacted logs, project files or credentials. Read the <a href="support.html">support information</a> before posting.</p>
+<p>The project uses the <a href="license.txt">MIT License</a>. The <a href="terms.html">terms of use</a> explain the limits and preserve rights that applicable law does not allow to be excluded.</p></main><footer>Token Weather 1.0.0 · Feida Wang trading as RSI AI · <a href="license.txt">MIT License</a></footer></body></html>
