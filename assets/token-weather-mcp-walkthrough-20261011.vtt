@@ -1,0 +1,115 @@
+WEBVTT
+
+00:00:00.848 --> 00:00:05.678
+Token Weather provides a live, read-only MCP service on
+Cloudflare. This recording
+
+00:00:05.678 --> 00:00:10.508
+uses a real protocol client with synthetic numbers. We connect
+without authentication
+
+00:00:10.508 --> 00:00:15.338
+and discover the plan context budget tool. The plugin is still an
+
+00:00:15.338 --> 00:00:16.143
+unpublished draft.
+
+00:00:17.972 --> 00:00:23.065
+For our first scenario, the reference is one hundred thousand
+tokens and
+
+00:00:23.065 --> 00:00:28.158
+current usage is sixty-five thousand. The server returns thirty-
+five thousand tokens of
+
+00:00:28.158 --> 00:00:33.251
+headroom, sixty-five percent usage, and Cloudy reference weather.
+These are calculations from
+
+00:00:33.251 --> 00:00:34.100
+supplied numbers.
+
+00:00:35.935 --> 00:00:40.487
+Next, we keep task context and output reserve separate. Adding
+twenty thousand
+
+00:00:40.487 --> 00:00:45.040
+for the task and five thousand for output produces ninety
+thousand planned
+
+00:00:45.040 --> 00:00:49.592
+usage and ten thousand remaining. The plan fits the supplied
+reference budget.
+
+00:00:51.434 --> 00:00:56.067
+When current usage already exceeds the reference, remaining room
+stays at zero.
+
+00:00:56.067 --> 00:01:00.700
+The server reports ten thousand current overage and twenty-five
+thousand planned overage.
+
+00:01:00.700 --> 00:01:04.560
+It does not describe a negative amount as available headroom.
+
+00:01:06.408 --> 00:01:11.122
+With assumed growth of ten thousand tokens per turn, the five
+totals
+
+00:01:11.122 --> 00:01:15.836
+are seventy-five, eighty-five, ninety-five, one hundred and five,
+and one hundred and
+
+00:01:15.836 --> 00:01:20.549
+fifteen thousand. The reference is crossed at turn four. This is
+an
+
+00:01:20.549 --> 00:01:24.085
+assumed-growth forecast, not a prediction of real platform
+compaction.
+
+00:01:25.923 --> 00:01:30.488
+An unknown reference remains unknown. The server can still
+calculate ninety thousand
+
+00:01:30.488 --> 00:01:35.052
+planned usage, but it does not invent remaining room, weather, or
+whether
+
+00:01:35.052 --> 00:01:39.236
+the plan fits. Account quota and monetary cost are also unknown.
+
+00:01:41.078 --> 00:01:46.453
+Finally, a server boundary check sends an unsupported messages
+field containing synthetic
+
+00:01:46.453 --> 00:01:51.828
+text. The service rejects it without echoing the content. It
+accepts bounded
+
+00:01:51.828 --> 00:01:57.203
+scalar counts and source labels, not transcripts, local paths, or
+credentials. This
+
+00:01:57.203 --> 00:02:00.338
+checks server behaviour, not language-model prompt routing.
+
+00:02:02.195 --> 00:02:07.410
+This walkthrough demonstrates the deployed MCP connection, five
+numeric scenarios, and a
+
+00:02:07.410 --> 00:02:12.625
+server input boundary. The protocol client shown here is a
+recording aid,
+
+00:02:12.625 --> 00:02:17.840
+not a shipped ChatGPT widget. The service does not read private
+ChatGPT
+
+00:02:17.840 --> 00:02:23.055
+context or control models and chats. OpenAI domain verification
+and MCP scanning
+
+00:02:23.055 --> 00:02:25.662
+passed. The plugin remains a draft.
+
