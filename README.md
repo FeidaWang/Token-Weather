@@ -16,6 +16,10 @@ Readings and forecasts are estimates, not promises. Missing or unsupported data 
 
 ## Try the panel
 
+![Token Weather 2.0.34 panel with demo data](docs/images/token-weather-2.0.34.png)
+
+*The 2.0.34 panel running with example data.*
+
 The latest Rust local release is **2.0.34**, for macOS on Apple silicon. [Download it and see the release instructions](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.0.34). The ZIP must be extracted and its `bin/token-weather-core` registered with a compatible local MCP host; downloading it alone does not install or connect it. See the [release record](docs/RUST-LOCAL-2.0.34.md) for details and the checksum.
 
 Want a preview without connecting your chat? In a clean clone, use the release source:
@@ -37,8 +41,6 @@ python3 -B mcp/demo/server.py --port 0
 ```
 
 Open the local address printed in the terminal. The demo starts with example numbers. Press Ctrl+C to stop it. No extra Python packages are needed.
-
-![Scenario planner with example numbers](docs/images/scenario-planner.jpg)
 
 For example, if your reference limit is 100,000 tokens and you've used 65,000, you have 35,000 left against that reference. A task estimated at 20,000 plus a 5,000 output reserve would leave 10,000. These numbers are only as reliable as the inputs; the planner cannot guarantee when Codex will compact a chat.
 

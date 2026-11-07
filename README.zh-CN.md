@@ -16,6 +16,10 @@ Token Weather 帮你了解 Codex 聊天还可能有多少空间。你可以把�
 
 ## 试用面板
 
+![Token Weather 2.0.34 面板，使用演示数据](docs/images/token-weather-2.0.34.png)
+
+*2.0.34 面板运行截图，使用示例数据。*
+
 最新的 Rust 本地版本是 **2.0.34**，适用于 Apple 芯片的 macOS。[下载并查看发布说明](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.0.34)。下载后需要解压，并将其中的 `bin/token-weather-core` 注册到兼容的本地 MCP 宿主；仅下载不会自动安装或连接。详细步骤和校验值见[版本记录](docs/RUST-LOCAL-2.0.34.md)。
 
 想先预览，又不连接自己的聊天？在干净的仓库副本中使用发布版本源码：
@@ -37,8 +41,6 @@ python3 -B mcp/demo/server.py --port 0
 ```
 
 打开终端打印出的本地地址。演示页面默认使用示例数字。按 Ctrl+C 停止，无需安装额外的 Python 包。
-
-![使用示例数字的预算计算器](docs/images/scenario-planner.jpg)
 
 例如，假设参考上限是 100,000 tokens，已用 65,000，那么距离该上限还剩 35,000。如果下一项任务预计增加 20,000，再为输出预留 5,000，就还剩 10,000。结果的可靠程度取决于输入的数字；计算器不能保证 Codex 何时压缩聊天。
 
