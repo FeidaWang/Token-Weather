@@ -113,43 +113,43 @@ pub fn compute(report: &Value, reading: &Value, now: f64) -> Result<Value> {
                         && budget["prefill_tokens"]
                             .as_u64()
                             .and_then(|p| n.checked_sub(p))
-                            == budget["scope_tokens"].as_u64()))
+                            .is_some_and(|scope| Some(scope) == budget["scope_tokens"].as_u64())))
         })
         && budget["scope_limit"].as_u64().is_some()
         && budget["full_context_limit"].as_u64().is_some()
         && runtime["awaiting_usage"] != true;
     let limit = if boundary {
-        if sampling {
-            tokens.and_then(|n| {
-                budget["remaining_tokens"]
-                    .as_u64()
-                    .and_then(|r| n.checked_add(r))
-            })
-        } else {
-            Some(
-                budget["scope_limit"]
-                    .as_u64()
-                    .unwrap()
-                    .min(budget["full_context_limit"].as_u64().unwrap()),
-            )
-        }
+        let used = tokens.unwrap();
+        let prefix = used - budget["scope_tokens"].as_u64().unwrap();
+        let limit = budget["scope_limit"]
+            .as_u64()
+            .unwrap()
+            .saturating_add(prefix)
+            .min(budget["full_context_limit"].as_u64().unwrap());
+        (!sampling || budget["remaining_tokens"].as_u64() == Some(limit.saturating_sub(used)))
+            .then_some(limit)
     } else {
         reading["observed_window"].as_u64()
     }
     .filter(|n| *n > 0);
     let epoch = report["last_request"]["epoch"].as_u64();
-    let mut completed: Vec<&Turn> = turns
+    let since_compaction = turns.iter().rposition(|p| p.compact).unwrap_or(0);
+    let completed: Vec<&Turn> = turns[since_compaction..]
         .iter()
         .filter(|p| Some(p.epoch) == epoch && p.completed)
         .collect();
-    if completed.len() > 6 {
-        completed.drain(..completed.len() - 6);
-    }
     let deltas: Vec<f64> = completed
         .windows(2)
+        .rev()
         .map(|p| p[1].tokens as f64 - p[0].tokens as f64)
+        .filter(|delta| *delta >= 0.0)
+        .take(8)
         .collect();
-    let growth = mean(&deltas);
+    let mut sorted = deltas.clone();
+    sorted.sort_by(f64::total_cmp);
+    let growth = (!sorted.is_empty())
+        .then(|| (sorted[(sorted.len() - 1) / 2] + sorted[sorted.len() / 2]) / 2.0);
+    let completed = &completed[completed.len().saturating_sub(9)..];
     let request_deltas: Vec<f64> = if completed.len() > 1 {
         samples[completed.first().unwrap().last_index..=completed.last().unwrap().last_index]
             .windows(2)
@@ -162,8 +162,8 @@ pub fn compute(report: &Value, reading: &Value, now: f64) -> Result<Value> {
         && reading["stale"] == false
         && reading["collection"]["catching_up"] != true
         && runtime["awaiting_usage"] != true;
-    let outlook: Vec<Value> = if usable && limit.is_some() && growth.is_some() {
-        (1..=5).map(|step|json!({"step":step,"tokens":tokens.unwrap() as f64+growth.unwrap()*step as f64})).collect()
+    let outlook: Vec<Value> = if usable && boundary && limit.is_some() && growth.is_some() {
+        (1..=2).map(|step|json!({"step":step,"tokens":tokens.unwrap() as f64+growth.unwrap()*step as f64})).collect()
     } else {
         vec![]
     };
@@ -195,7 +195,8 @@ pub fn compute(report: &Value, reading: &Value, now: f64) -> Result<Value> {
         "history_truncated":report["history_truncated"].as_bool().unwrap_or(false),"reference_limit":limit,
         "reference_kind":if boundary {if sampling {"sampling_auto_compact"} else {"auto_compact"}} else {"observed_window"},
         "growth_per_turn":growth,"growth_per_request":mean(&request_deltas),"rate_basis":deltas.len(),"request_rate_basis":request_deltas.len(),
-        "last_turn_delta":deltas.last(),"last_turn_requests":last.map(|p|p.requests),"last_turn_output":last.map(|p|p.output),
+        "last_turn_delta":completed.windows(2).last().map(|p| p[1].tokens as f64 - p[0].tokens as f64),
+        "last_turn_requests":last.map(|p|p.requests),"last_turn_output":last.map(|p|p.output),
         "remaining_tokens":if boundary&&usable {limit.map(|l|l.saturating_sub(tokens.unwrap()))}else{None},
         "turns_left":turns_left,"outlook":outlook,"paused":!usable}),
     )

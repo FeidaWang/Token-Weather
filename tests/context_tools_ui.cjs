@@ -12,32 +12,33 @@ const reading = (thread = 'fixture-A') => ({schema_version: 1, thread_id: thread
   last_request: {at: stamp, input: 28281, output: 5}});
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
-function panel(initial) {
+function panel(initial, {firstPanelView, storage = new Map()} = {}) {
   class Element {
     constructor(tag) { this.tag = tag; this.attributes = {}; this.children = []; this.style = {setProperty(name,value) {this[name]=value;}}; this.dataset = {}; this.handlers = {}; this.value = ''; this.open = false; }
     setAttribute(name, value) { this.attributes[name] = value; }
     getAttribute(name) { return this.attributes[name]; }
     replaceChildren(...children) { this.children = children; }
     append(...children) { this.children.push(...children); }
-    getAnimations() { return []; }
+    getAnimations() { entrances++; return []; }
     addEventListener(name, callback) { this.handlers[name] = callback; }
     click() { return this.handlers.click?.({preventDefault() {}}); }
   }
-  const elements = new Map(), timers = [], intervals = [], calls = [];
+  const elements = new Map(), timers = [], intervals = [], calls = [], documentEvents = {};
   const byId = id => { if (!elements.has(id)) elements.set(id, new Element('div')); return elements.get(id); };
-  let next = initial, onMessage, seconds = stamp, compactReply = null;
+  let next = initial, onMessage, seconds = stamp, compactReply = null, entrances = 0;
   class Clock extends Date { static now() { return seconds * 1000; } }
   const parent = {postMessage(message) {
     calls.push(message);
     if (!message.id) return;
     const body = message.method === 'ui/initialize' ? {result: {}} : message.params?.name === 'token_weather_compact_session' ? {result: compactReply} :
-      next === 'error' ? {error: {code: -1}} : {result: {_meta: {reading: structuredClone(next)}}};
+      next === 'error' ? {error: {code: -1}} : {result: {_meta: {reading: structuredClone(next), first_panel_view:firstPanelView}}};
     queueMicrotask(() => onMessage({source: parent, data: {jsonrpc: '2.0', id: message.id, ...body}}));
   }};
   vm.runInNewContext(script, {Date: Clock, crypto: {randomUUID: require('node:crypto').randomUUID},
     document: {getElementById: byId, createElement: tag => new Element(tag), createElementNS: (_, tag) => new Element(tag),
-      addEventListener() {}},
-    window: {parent, addEventListener(name, callback) { onMessage = callback; }},
+      addEventListener(name, callback) { documentEvents[name] = callback; }},
+    window: {parent, sessionStorage:{getItem:key => storage.get(key), setItem:(key,value) => storage.set(key,value)},
+      addEventListener(name, callback) { onMessage = callback; }},
     setInterval(callback) { intervals.push(callback); },
     clearTimeout(callback) {
       const index = timers.indexOf(callback);
@@ -49,31 +50,56 @@ function panel(initial) {
     },
   });
   return {byId, calls, async refresh(value) { next = value; await timers.shift()(); },
+    get entrances() { return entrances; }, visible() { documentEvents.visibilitychange(); },
+    notify(meta) { onMessage({source:parent,data:{jsonrpc:'2.0',method:'ui/notifications/tool-result',params:{_meta:meta}}}); },
     setCompact(value) { compactReply = value; },
     advance(delta) { seconds += delta; intervals.forEach(callback => callback()); }};
 }
 
 (async () => {
-  assert.match(template, /id="request-details" class="subpanel" open>/);
-  assert.match(template, /id="session-details" class="subpanel" open hidden>/);
+  assert.match(template, /id="token-details" class="subpanel" open hidden>/);
+  assert.match(template, /id="weather-label"[^>]*aria-expanded="true"/);
+  assert.match(template, /id="weather-scale"[^>]*aria-label="Weather scale">/);
+  assert.ok(!template.includes('id="forecast-chart"'));
   assert.doesNotMatch(template, /name="usage-scope"|id="live-indicator"|id="indicator"/);
   for (const [label, icon] of Object.entries({Clear:'sun', Fair:'cloud-sun', Cloudy:'cloud',
     Showers:'cloud-rain', Storm:'cloud-lightning'})) {
     assert.match(template, new RegExp('id="scale-' + label + '"[^>]*><i class="icon icon-' + icon + '"'));
   }
-  assert.ok(template.indexOf('id="forecast-band"') < template.indexOf('id="request-details"'));
-  assert.match(template, /class="session-action-row">\s*<button id="compact-session"[^>]* disabled>Compact session<\/button>\s*<\/div>/);
+  assert.ok(template.indexOf('id="growth-bars"') < template.indexOf('id="request-details"'));
+  assert.match(template, /id="compact-session"[^>]* disabled>Compact<\/button>/);
   assert.ok(!template.includes('id="catalog-dialog"'));
   assert.ok(!template.includes('Read Codex usage'));
   assert.doesNotMatch(template, /id="(?:native-links|plugins-link|skills-link)"/);
 
   const catalogs = reading();
+  const storage = new Map();
+  const first = panel(catalogs, {storage});
+  await settle();
+  assert.equal(first.entrances, 1);
+  first.visible();
+  await first.refresh(catalogs);
+  first.notify({reading:catalogs});
+  first.notify({entrance:'invocation',reading:reading('fixture-B')});
+  assert.equal(first.entrances, 1);
+  first.notify({entrance:'invocation',reading:catalogs});
+  assert.equal(first.entrances, 2);
+  const reopened = panel(catalogs, {storage});
+  const nativeReopened = panel(catalogs, {firstPanelView:false});
+  await settle();
+  assert.equal(reopened.entrances, 0);
+  assert.equal(nativeReopened.entrances, 0);
+  const offline = panel('error');
+  await settle();
+  assert.equal(offline.entrances, 0);
+  await offline.refresh(catalogs);
+  assert.equal(offline.entrances, 1);
   const a = panel(catalogs), b = panel(reading('fixture-B'));
   await settle();
-  assert.equal(a.byId('usage').textContent, '28.29k tokens');
+  assert.equal(a.byId('usage').textContent, '28.3k tokens');
   assert.doesNotMatch(template, /id="panel-refresh"/);
   await a.refresh({...catalogs, tokens:30000, last_request:{at:stamp,input:29995,output:5}});
-  assert.equal(a.byId('usage').textContent, '30k tokens');
+  assert.equal(a.byId('usage').textContent, '30.0k tokens');
   const resetAt = Math.floor(stamp) + 3600;
   const expiryAt = resetAt + 3600;
   const formatLocal = seconds => new Intl.DateTimeFormat(undefined, {
@@ -83,35 +109,45 @@ function panel(initial) {
     weekly_used_percent:28, weekly_resets_at:resetAt, banked_reset_available:2, banked_reset_expires_at:expiryAt};
   const quota = panel({...catalogs, account_limits: limits});
   await settle();
-  assert.equal(quota.byId('weekly-usage').textContent, '28% used · Resets ' + formatLocal(resetAt));
+  assert.equal(quota.byId('weekly-usage').textContent, '28% used');
+  assert.equal(quota.byId('weekly-reset').textContent, formatLocal(resetAt));
   assert.equal(quota.byId('banked-reset').textContent, '2 available · Expires ' + formatLocal(expiryAt));
   await quota.refresh({...catalogs, account_limits:{...limits, banked_reset_available:0, banked_reset_expires_at:null}});
   assert.equal(quota.byId('banked-reset').textContent, '0 available');
   quota.advance(76);
-  assert.equal(quota.byId('weekly-usage').textContent, 'Unavailable');
-  assert.equal(quota.byId('banked-reset').textContent, 'Unavailable');
+  assert.equal(quota.byId('account-limits').hidden, true);
+  await quota.refresh({...catalogs, weekly_quota: {observed_at:stamp, used_percent:32.5, resets_at:resetAt}});
+  assert.equal(quota.byId('weekly-usage').textContent, '32.5% used');
+  assert.equal(quota.byId('weekly-label').textContent, 'Weekly usage · last reported');
+  assert.equal(quota.byId('banked-row').hidden, true);
+  quota.advance(3600);
+  assert.equal(quota.byId('account-limits').hidden, true);
   await a.refresh(reading('fixture-B'));
   assert.equal(a.byId('request-details').hidden, true);
   assert.equal(a.byId('status').textContent, 'Chat binding changed');
-  assert.equal(b.byId('usage').textContent, '28.29k tokens');
+  assert.equal(b.byId('usage').textContent, '28.3k tokens');
   await a.refresh(catalogs);
   await a.refresh('error');
-  assert.equal(a.byId('usage').textContent, '28.29k tokens');
+  assert.equal(a.byId('usage').textContent, '28.3k tokens');
   await a.refresh(catalogs);
   assert.ok(a.calls.filter(call => call.params?.name === 'token_weather_context')
     .every(call => call.params.arguments.section === 'runtime'));
 
   const flowReading = {...reading(), tokens:100, last_request:{at:stamp, input:90, output:10,
-    cached_input:60, cache_write_input:20, reasoning_output:8},
+    cached_input:60, cache_write_input:20, reasoning_output:8}, turn_reasoning:11,
     session_usage:{at:stamp,total:1000,input:960,output:40,cached_input:700,cache_write_input:10,reasoning_output:5}};
   const flows = panel(flowReading);
   await settle();
+  assert.equal(flows.byId('cache-share').textContent, '66.7%');
+  assert.equal(flows.byId('turn-reasoning').textContent, '11 tokens');
+  await flows.refresh({...flowReading, turn_reasoning:0});
+  assert.equal(flows.byId('quick-usage').hidden, true);
   const labels = id => flows.byId(id).children.map(row => row.children.map(child => child.textContent));
   assert.deepEqual(labels('counts'), [
     ['Fresh input','10','10.0%'], ['Cache read','60','60.0%'], ['Cache write','20','20.0%'],
     ['Other output','2','2.0%'], ['Reasoning output','8','8.0%'],
   ]);
-  assert.equal(flows.byId('session-total').textContent, '1k tokens');
+  assert.equal(flows.byId('session-total').textContent, '1.0k tokens');
   assert.deepEqual(labels('session-counts')[1], ['Cache read','700','70.0%']);
   await flows.refresh({...flowReading, last_request:{...flowReading.last_request, cache_write_input:null}});
   assert.deepEqual(labels('counts')[0], ['Other input','30','30.0%']);
@@ -136,14 +172,12 @@ function panel(initial) {
   assert.ok(flows.calls.filter(call => call.params?.name === 'token_weather_context')
     .every(call => call.params.arguments.section === 'runtime'));
 
-  const weather = {thread_id: 'fixture-A', observed_at: stamp, kind: 'turn_forecast', reference_limit: 100000,
-    reference_kind: 'observed_window', growth_per_turn: 2000, growth_per_request: 1000, rate_basis: 2, last_turn_delta: 2000,
-    last_turn_requests: 3, last_turn_output: 10, turns_left: null, paused: false,
-    points: [{tokens: 20000, epoch: 0}, {tokens: 22000, epoch: 0}],
-    outlook: [1,2,3,4,5].map(step => ({step, tokens: 22000 + step * 2000}))};
-  const branded = panel({...catalogs, tokens: 20000, observed_window: 100000, forecast: weather});
+  const weather = {thread_id:'fixture-A', observed_at:stamp, kind:'turn_forecast', reference_limit:100000,
+    reference_kind:'observed_window', growth_per_turn:2000, turns_left:null, paused:false,
+    points:[{tokens:30000, epoch:0, completed:true}, {tokens:20000, epoch:1, completed:true, compaction:true},
+      {tokens:22000, epoch:1, completed:true}, {tokens:24500, epoch:1, completed:false}], outlook:[]};
+  const branded = panel({...catalogs, tokens:20000, observed_window:100000, forecast:weather});
   await settle();
-  assert.match(template, /id="weather-scale"[^>]* hidden>/);
   const scale = branded.byId('weather-scale');
   const weatherButton = branded.byId('weather-label');
   const capacity = branded.byId('forecast-meter');
@@ -151,70 +185,39 @@ function panel(initial) {
   weatherButton.click();
   assert.equal(scale.hidden, false);
   assert.equal(weatherButton.getAttribute('aria-expanded'), 'true');
-  for (const [tokens, label, colour] of [[34000, 'Clear', 'clear'], [35000, 'Fair', 'fair'], [55000, 'Cloudy', 'cloudy'], [70000, 'Showers', 'showers'], [85000, 'Storm', 'storm']]) {
-    await branded.refresh({...catalogs, tokens, observed_window: 100000, forecast: weather});
+  for (const [tokens, label] of [[34000,'Clear'], [35000,'Fair'], [55000,'Cloudy'], [70000,'Showers'], [85000,'Storm']]) {
+    await branded.refresh({...catalogs, tokens, observed_window:100000, forecast:weather});
     assert.equal(branded.byId('weather-condition').textContent, label);
-    assert.equal(branded.byId('panel').style['--weather'], 'var(--weather-' + colour + ')');
     assert.ok(Math.abs(parseFloat(capacity.style['--meter-position']) - tokens / 1000) < 1e-9);
-    assert.equal(branded.byId('forecast-details').hidden, false);
-    assert.equal(branded.byId('compact-session').disabled, true);
   }
-  await branded.refresh({...catalogs, tokens:40000, observed_window:200000,
-    forecast:{...weather, reference_kind:'auto_compact'}});
-  assert.equal(branded.byId('forecast-context').textContent, '20.0%');
-  assert.equal(branded.byId('scale-Fair').getAttribute('aria-current'), 'true');
-  assert.equal(capacity.style['--meter-position'], '20%');
-  assert.equal(capacity.style['--clear-end'], '17.5%');
-  assert.equal(capacity.style['--showers-end'], '42.5%');
-  assert.equal(branded.byId('forecast-meter-reserve').style.width, '50%');
-  assert.match(branded.byId('weather-basis').textContent, /40\.0% of the auto-compact threshold/);
+  const threshold = {...weather, reference_kind:'sampling_auto_compact', turns_left:120,
+    outlook:[{step:1,tokens:42000},{step:2,tokens:44000}]};
+  await branded.refresh({...catalogs, tokens:40000, observed_window:200000, forecast:threshold});
+  assert.equal(branded.byId('forecast-context').textContent, '20.0% used');
+  assert.equal(branded.byId('forecast-meter-reserve').style.flexGrow, 50);
+  assert.equal(branded.byId('capacity-reserve-label').textContent, 'compact 50.0%');
+  assert.equal(branded.byId('forecast-title').textContent, 'Plenty of room');
+  assert.equal(branded.byId('forecast-caption').textContent, '99+ turns before auto-compact at 100.0k');
+  assert.equal(branded.byId('growth-typical').textContent, '+2.0k');
+  assert.equal(branded.byId('growth-peak').textContent, '+2.0k');
+  const chart = branded.byId('growth-bars');
+  assert.equal(chart.children.length, 3);
+  assert.match(chart.getAttribute('aria-label'), /Compacted/);
+  assert.equal(chart.children.filter(child => child.children[0]?.dataset.projected === 'true').length, 2);
+  assert.equal(chart.children.filter(child => child.children[0]?.dataset.peak === 'true').length, 1);
   assert.equal(scale.hidden, false);
   weatherButton.click();
   assert.equal(scale.hidden, true);
-  assert.equal(weatherButton.getAttribute('aria-expanded'), 'false');
-  await branded.refresh({...catalogs, forecast: {...weather, thread_id: 'fixture-B'}});
-  assert.equal(branded.byId('weather-condition').textContent, 'Waiting');
-  assert.equal(branded.byId('panel').style['--weather'], 'var(--muted)');
-  assert.equal(capacity.style['--clear-end'], '35%');
-  await a.refresh({...catalogs, tokens: 22000, observed_window: 100000, forecast: weather});
-  assert.equal(a.byId('weather-forecast').hidden, false);
-  assert.equal(a.byId('forecast-growth').textContent, '+2k/turn');
-  assert.equal(a.byId('forecast-sample').textContent, '+1k per request');
-  assert.equal(a.byId('forecast-context').textContent, '22.0%');
-  assert.equal(a.byId('forecast-details').hidden, false);
-  assert.equal(a.byId('forecast-projection').textContent, '~32% in 5 turns');
-  assert.equal(a.byId('forecast-band').getAttribute('aria-expanded'), 'true');
-  assert.equal(a.byId('forecast-band').getAttribute('aria-label'), 'Hide forecast');
-  assert.equal(a.byId('compact-session').disabled, true);
-  a.byId('forecast-band').click();
-  assert.equal(a.byId('forecast-details').hidden, true);
-  assert.equal(a.byId('forecast-context').textContent, '22.0%');
-  assert.equal(a.byId('compact-session').disabled, true);
-  await a.refresh({...catalogs, tokens: 24000, observed_window: 100000, forecast: weather});
-  assert.equal(a.byId('forecast-context').textContent, '24.0%');
-  assert.equal(a.byId('forecast-details').hidden, true); // Polling preserves the user's view.
-  a.byId('forecast-band').click();
-  assert.equal(a.byId('forecast-remaining').textContent, '—');
-  assert.match(a.byId('forecast-estimate').textContent, /In 5 turns: ~32% of the observed context window/);
-  assert.equal(a.byId('forecast-note').hidden, true);
-  const chart = a.byId('forecast-chart');
-  assert.equal(chart.children.filter(c => c.getAttribute('class') === 'forecast-point').length, 5);
-  assert.ok(chart.children.some(c => c.tag === 'circle'));
-  assert.ok(chart.children.every(c => !['rect','polygon','defs'].includes(c.tag)));
-  assert.equal(a.byId('forecast-key-projected').hidden, false);
-  await a.refresh({...catalogs, forecast: {...weather, paused: true}});
-  assert.equal(a.byId('forecast-note').hidden, true);
-  assert.equal(a.byId('forecast-projection').hidden, true);
-  assert.equal(a.byId('forecast-key').hidden, false);
-  assert.equal(a.byId('forecast-key-projected').hidden, true);
-  assert.equal(a.byId('forecast-chart').getAttribute('aria-label'), 'Context history. Forecast paused.');
-  await a.refresh({...catalogs, forecast: weather});
-  assert.equal(a.byId('forecast-projection').hidden, false);
-  assert.equal(a.byId('forecast-key').hidden, false);
-  await a.refresh({...catalogs, forecast: {...weather, thread_id: 'fixture-B'}});
-  assert.equal(a.byId('weather-forecast').hidden, false);
-  assert.equal(a.byId('forecast-details').hidden, true);
-  assert.equal(a.byId('compact-session').disabled, true);
+  await branded.refresh({...catalogs, tokens:40000, observed_window:200000,
+    forecast:{...threshold, turns_left:99}});
+  assert.equal(branded.byId('forecast-title').textContent, '~99 turns left');
+  await branded.refresh({...catalogs, tokens:40000, observed_window:200000,
+    forecast:{...threshold, paused:true, outlook:[]}});
+  assert.equal(branded.byId('forecast-title').hidden, true);
+  assert.equal(branded.byId('growth-projected').hidden, true);
+  await branded.refresh({...catalogs, forecast:{...threshold, thread_id:'fixture-B'}});
+  assert.equal(branded.byId('forecast-hero').hidden, true);
+  assert.equal(branded.byId('growth-bars').hidden, true);
   const withMemory = {...catalogs, memory_files: {thread_id: 'fixture-A', observed_at: stamp,
     source: 'thread_memory_sources', count: 2, files: [{path: '/synthetic/one.md'}, {path: '/synthetic/two.md'}]}};
   await a.refresh(withMemory);
@@ -229,43 +232,30 @@ function panel(initial) {
   const runtime = {thread_id: 'fixture-A', observed_at: stamp, active: false, auto_compact: null,
     compaction: {supported: true, can_compact: true, phase: 'ready'}};
   const compactButton = a.byId('compact-session');
-  await a.refresh({...catalogs, runtime, runtime_supported: true});
-  assert.equal(a.byId('forecast-budget').hidden, true);
+  const primary = a.byId('compact-primary');
+  await a.refresh({...catalogs, runtime, runtime_supported:true});
   assert.equal(compactButton.disabled, false);
-  for (const [tokens, recommended] of [[59999,false], [60000,true], [84999,true], [85000,false]]) {
+  for (const [tokens, urgent] of [[59999,false],[60000,true],[84999,true],[85000,true]]) {
     await a.refresh({...catalogs, runtime, tokens, observed_window:100000});
-    assert.equal(compactButton.dataset.recommended, String(recommended));
-    assert.equal(compactButton.disabled, false);
+    assert.equal(a.byId('compact-advisory').hidden, !urgent);
+    assert.equal(primary.hidden, !urgent);
+    assert.equal(compactButton.hidden, urgent);
+    assert.equal(a.byId('compact-hint').hidden, urgent);
   }
   const sweetSpot = {...catalogs, runtime, tokens:65000, observed_window:100000};
-  const smallerBoundary = {...weather, reference_kind:'auto_compact', reference_limit:100000};
-  await a.refresh({...sweetSpot, observed_window:200000, forecast:smallerBoundary});
-  assert.equal(compactButton.dataset.recommended, 'true');
-  await a.refresh({...sweetSpot, observed_window:200000,
-    forecast:{...smallerBoundary, observed_at:stamp-30}});
-  assert.equal(compactButton.dataset.recommended, 'false');
+  await a.refresh({...sweetSpot, observed_window:200000, forecast:threshold});
+  assert.equal(primary.hidden, false);
+  await a.refresh({...sweetSpot, observed_window:200000, forecast:{...threshold, observed_at:stamp-30}});
+  assert.equal(primary.hidden, true);
   await a.refresh({...sweetSpot, collection:{catching_up:true}});
-  assert.equal(compactButton.disabled, true);
-  assert.equal(compactButton.dataset.recommended, 'false');
-  const budget = {thread_id: 'fixture-A', observed_at: stamp, measured_at: stamp, source: 'same_owner_engine_compaction_trace', kind: 'effective_runtime_remaining', active_context_tokens: 28286, remaining_tokens: 428093};
-  await a.refresh({...catalogs, runtime: {...runtime, auto_compact: budget}});
-  assert.equal(a.byId('forecast-remaining').textContent, '428.1k');
-  await a.refresh({...catalogs, runtime: {...runtime, active: true, auto_compact: {...budget, kind: 'sampling_runtime_remaining'}}});
-  assert.equal(a.byId('compact-session').disabled, true);
-  assert.equal(a.byId('forecast-budget').hidden, false);
-  assert.match(a.byId('forecast-remaining').title, /Turn-end policy/);
-  await a.refresh({...catalogs, runtime: {...runtime, auto_compact: budget}});
-  assert.ok(a.byId('forecast-remaining').title.includes('428,093'));
-  await a.refresh({...catalogs, tokens: 28286, runtime: {...runtime, auto_compact: {...budget, active_context_tokens: 28286}}});
-  assert.equal(a.byId('forecast-remaining').textContent, '428.1k'); // No history required for live counts.
-  assert.equal(a.byId('forecast-details').hidden, true);
-  assert.equal(compactButton.dataset.recommended, 'false');
-  await a.refresh({...catalogs, runtime: {...runtime, auto_compact: budget}});
-  for (const invalid of [{...budget, thread_id: 'fixture-B'}, {...budget, source: 'window_remainder'}, {...budget, observed_at: stamp - 10}]) {
-    await a.refresh({...catalogs, runtime: {...runtime, auto_compact: invalid}});
-    assert.equal(a.byId('forecast-budget').hidden, true);
-  }
-
+  assert.equal(primary.disabled, true);
+  await a.refresh({...sweetSpot, preview_mode:'read_only'});
+  assert.equal(primary.hidden, true);
+  assert.equal(a.byId('compact-urgent-fallback').hidden, false);
+  await a.refresh({...sweetSpot, preview_mode:'demo'});
+  await primary.click();
+  assert.equal(a.byId('compact-urgent-status').textContent, 'Preview only');
+  assert.equal(a.calls.filter(call => call.params?.name === 'token_weather_compact_session').length, 0);
   await a.refresh({...sweetSpot, tokens:28000});
   a.setCompact({_meta: {thread_id: 'fixture-A', compaction: {supported: true, can_compact: false, phase: 'accepted'}}});
   await Promise.all([a.byId('compact-session').click(), a.byId('compact-session').click()]);
@@ -278,7 +268,7 @@ function panel(initial) {
   assert.equal(a.byId('compact-status').hidden, false);
   await a.refresh({...sweetSpot, runtime: {...runtime, active: true}, runtime_supported: true});
   assert.equal(compactButton.disabled, true);
-  assert.equal(compactButton.dataset.recommended, 'false');
+  assert.equal(primary.disabled, true);
   await a.byId('compact-session').click();
   assert.equal(a.calls.filter(call => call.params?.name === 'token_weather_compact_session').length, 1);
   await a.refresh(reading());

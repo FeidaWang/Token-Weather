@@ -8,7 +8,7 @@ A **token** is a small piece of text. A chat's **context** is the information th
 
 ## What can I do with it?
 
-- **See your chat's weather:** the local Rust panel shows available context information, recent history and a five-turn forecast when there is enough data.
+- **See your chat's weather:** the local Rust panel shows available context information, recent growth, token details and an estimate to the auto-compact threshold when Codex provides a verified reference.
 - **Explore a budget:** enter your own numbers into the separate scenario planner to see whether a task may fit.
 - **Keep control:** run the tools locally, or host the numeric planner on your own server.
 
@@ -16,17 +16,19 @@ Readings and forecasts are estimates, not promises. Missing or unsupported data 
 
 ## Try the panel
 
-The latest Rust local release is **2.0.34**, for macOS on Apple silicon. [Download it and see the release instructions](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.0.34). The ZIP must be extracted and its `bin/token-weather-core` registered with a compatible local MCP host; downloading it alone does not install or connect it. See the [release record](docs/RUST-LOCAL-2.0.34.md) for details and the checksum.
+The latest Rust local release is **2.1.4**, for macOS on Apple silicon. [Download it and see the release instructions](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.1.4). The ZIP must be extracted and its `bin/token-weather-core` registered with a compatible local MCP host; downloading it alone does not install or connect it. See the [release record](docs/RUST-LOCAL-2.1.4.md) for details and the checksum.
+
+Open **Token Weather Context** from the Codex chat sidebar. The weather scale and token details start expanded. MCP servers can be opened on demand. The entrance plays on the first successful reading or an explicit tool invocation. Switching back to the panel and background refreshes do not replay it. Reduce Motion disables the entrance.
 
 Want a preview without connecting your chat? In a clean clone, use the release source:
 
 ```sh
-git switch --detach rust-v2.0.34
+git switch --detach rust-v2.1.4
 cargo build --release --locked --manifest-path rust/token-weather-core/Cargo.toml
 rust/token-weather-core/target/release/token-weather-core serve --demo
 ```
 
-Open the local address printed in the terminal. The preview uses **made-up data**, not your chat. Press Ctrl+C to stop it. Building requires Rust and Cargo. The actual MCP runtime reads the chat selected by the host; compatibility depends on the local Codex version and available records. Manual compaction needs a separately verified and enrolled isolated Codex profile.
+Open the local address printed in the terminal and use **Debug state** to switch between Clear and Storm. The preview uses **made-up data**, not your chat. Press Ctrl+C to stop it. Building requires Rust and Cargo. The actual MCP runtime reads the chat selected by the host; compatibility depends on the local Codex version and available records. Manual compaction needs a separately verified and enrolled isolated Codex profile.
 
 ## Try the scenario planner
 

@@ -62,6 +62,7 @@ struct ReadQuery {
     section: String,
     catalog: String,
     refresh: bool,
+    scenario: String,
 }
 fn allowed(headers: &HeaderMap, port: u16) -> bool {
     let host = headers.get(header::HOST).and_then(|v| v.to_str().ok());
@@ -94,7 +95,9 @@ async fn host(State(w): State<Web>, h: HeaderMap) -> Response {
         } else {
             "Local chat · read-only preview"
         },
-    )))
+    ).replace("__DEBUG__", if w.demo {
+        r#"<label>Debug state <select id="debug-state"><option value="clear">Clear</option><option value="storm">Storm</option></select></label>"#
+    } else { "" })))
 }
 async fn panel(State(w): State<Web>, h: HeaderMap) -> Response {
     if !allowed(&h, w.port) {
@@ -121,6 +124,10 @@ async fn reading(State(w): State<Web>, h: HeaderMap, Query(q): Query<ReadQuery>)
                 q.refresh,
             )
             .await
+            .map(|mut value| {
+                value["_meta"]["reading"]["preview_mode"] = json!("read_only");
+                value
+            })
     } else {
         Err(anyhow!("No bound thread"))
     };
@@ -132,36 +139,78 @@ async fn reading(State(w): State<Web>, h: HeaderMap, Query(q): Query<ReadQuery>)
         )),
     }
 }
-const HOST: &str = r#"<!doctype html><html lang="en-AU"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Token Weather</title><style>html,body{margin:0;background:#191919;color:#aaa;font:11px system-ui}header{padding:9px 14px;border-bottom:1px solid #ffffff0d}iframe{display:block;width:100%;height:calc(100dvh - 34px);border:0}</style><header>__LABEL__</header><iframe title="Token Weather" src="/panel"></iframe><script>
-const frame=document.querySelector('iframe');window.qaCalls=[];addEventListener('message',async event=>{if(event.source!==frame.contentWindow||!event.data.id)return;const m=event.data;qaCalls.push({method:m.method,params:m.params,at:performance.now()});if(qaCalls.length>300)qaCalls.shift();try{let result={};if(m.method==='ui/initialize')result={hostContext:{availableDisplayModes:['inline'],displayMode:'inline'}};else if(m.method==='ui/open-link'){document.querySelector('header').textContent='Navigation preview: '+m.params.url;result={isError:false};}else if(m.method==='tools/call'){if(m.params.name!=='token_weather_context')throw Error('Read-only preview');const a=m.params.arguments||{};const response=await fetch('/reading?'+new URLSearchParams({section:a.section||'',catalog:a.catalog||'installed',refresh:String(a.refresh||false)}));if(!response.ok)throw Error('Unavailable');result=await response.json();}event.source.postMessage({jsonrpc:'2.0',id:m.id,result},'*');}catch(_){event.source.postMessage({jsonrpc:'2.0',id:m.id,error:{code:-1,message:'Reading unavailable'}},'*');}});
+const HOST: &str = r#"<!doctype html><html lang="en-AU"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Token Weather</title><link rel="icon" href="data:,">
+<style>html,body{margin:0;background:#191919;color:#aaa;font:11px system-ui}body{height:100dvh;display:flex;flex-direction:column}header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px}select{font:inherit}iframe{flex:1;min-height:0;width:100%;border:0}</style>
+<header><span>__LABEL__</span>__DEBUG__</header><iframe title="Token Weather" src="/panel"></iframe><script>
+const frame = document.querySelector('iframe');
+const debug = document.querySelector('#debug-state');
+let generation = 0;
+debug?.addEventListener('change', () => { generation++; frame.src = '/panel'; });
+window.qaCalls = [];
+addEventListener('message', async event => {
+  if (event.source !== frame.contentWindow || !event.data.id) return;
+  const m = event.data, started = generation;
+  const reply = body => { if (started === generation) event.source.postMessage({jsonrpc:'2.0',id:m.id,...body},'*'); };
+  qaCalls.push({method:m.method,params:m.params,at:performance.now()});
+  if (qaCalls.length > 300) qaCalls.shift();
+  try {
+    let result = {};
+    if (m.method === 'ui/initialize') {
+      result = {hostContext:{availableDisplayModes:['inline'],displayMode:'inline'}};
+    } else if (m.method === 'ui/open-link') {
+      document.querySelector('header span').textContent = 'Navigation preview: '+m.params.url;
+      result = {isError:false};
+    } else if (m.method === 'tools/call') {
+      if (m.params.name !== 'token_weather_context') throw Error('Read-only preview');
+      const a = m.params.arguments || {};
+      const query = new URLSearchParams({section:a.section||'',catalog:a.catalog||'installed',
+        refresh:String(a.refresh||false),scenario:debug?.value||''});
+      const response = await fetch('/reading?' + query);
+      if (!response.ok) throw Error('Unavailable');
+      result = await response.json();
+    }
+    reply({result});
+  } catch (_) { reply({error:{code:-1,message:'Reading unavailable'}}); }
+});
 </script></html>"#;
 fn demo(q: &ReadQuery) -> Result<Value> {
     let time = now();
-    let mut samples = vec![];
-    let mut ends: Vec<u64> = (0..15)
-        .map(|i| 240000 + i * 15000)
-        .chain((0..21).map(|i| 110000 + i * 11975))
+    let storm = q.scenario == "storm";
+    let ends: [u64; 11] = if storm {
+        [
+            211000, 222000, 239000, 252000, 286000, 304000, 321000, 338000, 351000, 368000, 385000,
+        ]
+    } else {
+        [
+            47000, 49000, 52000, 59500, 63000, 20000, 21900, 24000, 26000, 28100, 29000,
+        ]
+    };
+    let current = ends[10];
+    let input = current - 500;
+    let cached = if storm {
+        input * 971 / 1000
+    } else {
+        input * 994 / 1000
+    };
+    let total: u64 = ends.iter().sum();
+    let samples: Vec<_> = ends
+        .into_iter()
+        .enumerate()
+        .map(|(i, tokens)| {
+            let compact = !storm && i == 5;
+            json!({"turn":format!("demo-{i}"),"epoch":u8::from(!storm && i>=5),"tokens":tokens,
+            "at":time-(10-i) as f64*60.0,"is_compaction":compact,"is_turn_end":true,"output":500})
+        })
         .collect();
-    ends.extend([353500, 357500, 361000, 364500, 367000]);
-    for (i, tokens) in ends.into_iter().enumerate() {
-        let values = if i == 40 {
-            vec![365000, 366000, 367000]
-        } else {
-            vec![tokens]
-        };
-        let len = values.len();
-        for (j, value) in values.into_iter().enumerate() {
-            let output = if i == 40 { [1000, 500, 16000][j] } else { 500 };
-            samples.push(json!({"turn":format!("demo-{i}"),"epoch":if i<15{0}else{1},"tokens":value,"at":time-(40-i)as f64*60.0-(len-1-j)as f64,"is_compaction":i==15,"is_turn_end":j==len-1,"output":output}));
-        }
-    }
     let id = "demo-weather";
-    let mut r = json!({"schema_version":1,"thread_id":id,"available":true,"tokens":367000,"observed_window":1000000,"stale":false,"max_age_seconds":120,
-        "last_request":{"at":time,"input":351000,"cached_input":240000,"cache_write_input":34000,"output":16000,"reasoning_output":9000},
-        "session_usage":{"at":time,"total":12680000,"input":12460000,"cached_input":10800000,"cache_write_input":250000,"output":220000,"reasoning_output":130000},
-        "api_cost_estimate":{"usd":6.725,"priced_tokens":12680000,"observed_tokens":12680000,"partial":false,"prices_as_of":"2026-11-07"},
+    let mut r = json!({"schema_version":1,"thread_id":id,"available":true,"tokens":current,"observed_window":475000,"stale":false,"max_age_seconds":120,
+        "preview_mode":"demo",
+        "last_request":{"at":time,"input":input,"cached_input":cached,"cache_write_input":0,"output":500,"reasoning_output":0},
+        "turn_reasoning":0,
+        "session_usage":{"at":time,"total":total,"input":total-5500,"cached_input":total*9/10,"cache_write_input":0,"output":5500,"reasoning_output":1000},
+        "account_limits":{"kind":"codex_account_limits","thread_id":id,"observed_at":time,"weekly_used_percent":33,"weekly_resets_at":time as u64+518400,"banked_reset_available":2},
         "runtime_supported":true,"skill_catalog_supported":true,"plugin_catalog_supported":true,"native_navigation_supported":true,"native_usage_supported":true,"tool_catalog_supported":true,
-        "runtime":{"thread_id":id,"observed_at":time,"active":false,"compaction":{"supported":false},"auto_compact":{"kind":"effective_runtime_remaining","source":"same_owner_engine_compaction_trace","thread_id":id,"observed_at":time,"measured_at":time,"active_context_tokens":367000,"scope_tokens":367000,"scope_limit":967000,"full_context_limit":1000000,"remaining_tokens":600000}}});
+        "runtime":{"thread_id":id,"observed_at":time,"active":false,"compaction":{"supported":false},"auto_compact":{"kind":"sampling_runtime_remaining","source":"same_owner_engine_compaction_trace","thread_id":id,"observed_at":time,"measured_at":time,"active_context_tokens":current,"scope_tokens":current,"scope_limit":450000,"full_context_limit":475000,"remaining_tokens":450000-current}}});
     let report = json!({"samples":samples,"last_request":samples.last()});
     r["forecast"] = forecast::compute(&report, &r, time)?;
     // These catalog fixtures exist only in the explicitly labelled --demo HTTP
@@ -177,7 +226,7 @@ fn demo(q: &ReadQuery) -> Result<Value> {
             } else {
                 vec!["Token Weather", "Figma", "GitHub", "Google Drive"]
             };
-            let rows:Vec<_>=names.iter().enumerate().map(|(i,n)|json!({"id":format!("demo-plugin-{i}"),"name":n,"title":n,"description":match *n{"Token Weather"=>"Context insights and five-turn forecasts","Figma"=>"Design files and component libraries","GitHub"=>"Repositories, pull requests and issues","Google Drive"=>"Documents and shared files",_=>"Explore this integration in the plugin directory"},"marketplace":"Demo catalog","enabled":true,"installed":!market,"native_url":"codex://skills"})).collect();
+            let rows:Vec<_>=names.iter().enumerate().map(|(i,n)|json!({"id":format!("demo-plugin-{i}"),"name":n,"title":n,"description":match *n{"Token Weather"=>"Context insights and auto-compact forecasts","Figma"=>"Design files and component libraries","GitHub"=>"Repositories, pull requests and issues","Google Drive"=>"Documents and shared files",_=>"Explore this integration in the plugin directory"},"marketplace":"Demo catalog","enabled":true,"installed":!market,"native_url":"codex://skills"})).collect();
             let key = if market { "marketplace" } else { "installed" };
             let mut value = json!({"kind":"owner_plugin_catalog","thread_id":id,"observed_at":time,"workspace":"/demo","catalog":key});
             value[key] = json!(rows);

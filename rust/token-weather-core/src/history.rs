@@ -12,7 +12,7 @@ use std::{
 };
 const LINE: usize = 256 * 1024;
 const BUDGET: u64 = 8 * 1024 * 1024;
-const CACHE_VERSION: u8 = 5;
+const CACHE_VERSION: u8 = 7;
 const MAX_PENDING_COST_REQUESTS: usize = 64;
 const VERSIONS: &[&str] = &[
     "0.160.0",
@@ -29,6 +29,22 @@ struct RecordedUsage {
     cached_input: u64,
     cache_write_input: Option<u64>,
     reasoning_output: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct WeeklyQuota {
+    observed_at: f64,
+    used_percent: f64,
+    resets_at: Option<u64>,
+}
+
+impl WeeklyQuota {
+    fn valid(&self) -> bool {
+        self.observed_at.is_finite()
+            && self.observed_at >= 0.0
+            && (0.0..=100.0).contains(&self.used_percent)
+            && self.resets_at.is_none_or(|at| at <= 253402300799)
+    }
 }
 impl RecordedUsage {
     fn parse(usage: &Value, at: f64) -> Option<Self> {
@@ -222,6 +238,8 @@ pub struct History {
     pub truncated: bool,
     cache_write_input: Option<u64>,
     session_usage: Option<RecordedUsage>,
+    turn_usage: Option<(String, RecordedUsage)>,
+    weekly_quota: Option<WeeklyQuota>,
     api_estimate: ApiEstimate,
     signature: Option<String>,
 }
@@ -230,6 +248,11 @@ impl History {
         self.samples.len() <= 400
             && self.api_estimate.valid()
             && self.session_usage.as_ref().is_none_or(RecordedUsage::valid)
+            && self
+                .turn_usage
+                .as_ref()
+                .is_none_or(|(id, usage)| thread_id(id).is_ok() && usage.valid())
+            && self.weekly_quota.as_ref().is_none_or(WeeklyQuota::valid)
             && self.cache_write_input.is_none_or(|w| {
                 self.samples
                     .back()
@@ -300,6 +323,17 @@ impl History {
         }
         let (usage, request, turn) = if row["type"] == "token_usage_record" && p["thread_id"] == id
         {
+            if let Some(turn) = p["turn_id"].as_str().filter(|id| thread_id(id).is_ok())
+                && self.turn.as_deref() == Some(turn)
+                && let Ok(at) = stamp(&row["timestamp"])
+                && let Some(usage) = RecordedUsage::parse(&p["turn_token_usage"], at)
+                && self
+                    .turn_usage
+                    .as_ref()
+                    .is_none_or(|(_, previous)| at >= previous.at)
+            {
+                self.turn_usage = Some((turn.to_owned(), usage));
+            }
             (&p["thread_token_usage"], &p["usage"], p["turn_id"].as_str())
         } else if row["type"] == "event_msg" && p["type"] == "token_count" {
             let info = &p["info"];
@@ -422,6 +456,29 @@ impl History {
                     }
                 }
                 "token_count" => {
+                    let limits = &p["rate_limits"];
+                    if limits["limit_id"] == "codex"
+                        && let Ok(at) = stamp(&row["timestamp"])
+                        && let Some(weekly) = ["primary", "secondary"]
+                            .into_iter()
+                            .map(|name| &limits[name])
+                            .find(|window| window["window_minutes"] == 10080)
+                        && let Some(percent) = weekly["used_percent"].as_f64()
+                    {
+                        let quota = WeeklyQuota {
+                            observed_at: at,
+                            used_percent: percent,
+                            resets_at: weekly["resets_at"].as_u64(),
+                        };
+                        if quota.valid()
+                            && self
+                                .weekly_quota
+                                .as_ref()
+                                .is_none_or(|q| at >= q.observed_at)
+                        {
+                            self.weekly_quota = Some(quota);
+                        }
+                    }
                     let info = &p["info"];
                     if info.is_null() {
                         return Ok(());
@@ -454,9 +511,6 @@ impl History {
                     ]))?);
                     if self.signature.as_ref() == Some(&signature) {
                         return Ok(());
-                    }
-                    if self.has_current && self.samples.back().is_some_and(|s| tokens < s.tokens) {
-                        self.reset(false);
                     }
                     self.samples.push_back(Sample {
                         at,
@@ -495,9 +549,15 @@ impl History {
         if let Some(w) = self.cache_write_input.filter(|_| last.is_some()) {
             request["cache_write_input"] = json!(w);
         }
+        let turn_reasoning = self
+            .turn_usage
+            .as_ref()
+            .filter(|(id, _)| Some(id) == self.turn.as_ref())
+            .map(|(_, usage)| usage.reasoning_output);
         json!({"samples":self.samples,"last_request":request,"tokens":last.map(|p|p.tokens),"observed_window":self.window,
             "model":self.model,"effort":self.effort,"history_truncated":self.truncated,
             "session_usage":self.session_usage,
+            "turn_reasoning":turn_reasoning,"weekly_quota":self.weekly_quota,
             "api_cost_estimate":self.api_estimate.report(),
             "stale":last.is_none_or(|p|now-p.at>120.0||p.at>now+1.0),"max_age_seconds":120})
     }

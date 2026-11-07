@@ -11,6 +11,7 @@ use crate::{
 use anyhow::{Result, anyhow, ensure};
 use serde_json::{Value, json};
 use std::{
+    collections::VecDeque,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -76,6 +77,7 @@ pub struct Service {
     history: Arc<Mutex<HistoryStore>>,
     cache: CatalogCache,
     owner_slots: Arc<tokio::sync::Semaphore>,
+    opened_panels: Arc<Mutex<VecDeque<String>>>,
 }
 impl Service {
     pub fn new(
@@ -94,6 +96,7 @@ impl Service {
             history: Arc::new(Mutex::new(HistoryStore::new(state_dir))),
             cache: CatalogCache::default(),
             owner_slots: Arc::new(tokio::sync::Semaphore::new(3)),
+            opened_panels: Arc::default(),
         })
     }
     fn read_catalog(&self, spec: OwnerSpec, key: Key, refresh: bool) -> Value {
@@ -168,6 +171,8 @@ impl Service {
                 "observed_window",
                 "last_request",
                 "session_usage",
+                "turn_reasoning",
+                "weekly_quota",
                 "api_cost_estimate",
                 "stale",
                 "max_age_seconds",
@@ -441,13 +446,33 @@ impl Service {
                         ensure!(v.is_string(), "Invalid catalog selector");
                     }
                 }
-                self.reading(
-                    id.into(),
-                    args["section"].as_str().unwrap_or("").into(),
-                    args["catalog"].as_str().unwrap_or("installed").into(),
-                    args["refresh"] == true,
-                )
-                .await
+                let section = args["section"].as_str().unwrap_or("");
+                let mut result = self
+                    .reading(
+                        id.into(),
+                        section.into(),
+                        args["catalog"].as_str().unwrap_or("installed").into(),
+                        args["refresh"] == true,
+                    )
+                    .await?;
+                let meta = &mut result["_meta"];
+                if meta["reading"]["available"] == true && meta["reading"]["tokens"].is_u64() {
+                    if section.is_empty() {
+                        meta["entrance"] = json!("invocation");
+                    } else if section == "runtime" {
+                        let mut opened =
+                            self.opened_panels.lock().unwrap_or_else(|e| e.into_inner());
+                        let first = !opened.iter().any(|thread| thread == id);
+                        if first {
+                            if opened.len() == 128 {
+                                opened.pop_front();
+                            }
+                            opened.push_back(id.to_owned());
+                        }
+                        meta["first_panel_view"] = json!(first);
+                    }
+                }
+                Ok(result)
             }
             _ => Err(anyhow!("Method or resource not found")),
         }

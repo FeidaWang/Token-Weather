@@ -81,6 +81,56 @@ fn turn(id: &str) -> Value {
 fn usage(n: u64, request: u64) -> Value {
     json!({"type":"event_msg","timestamp":"2026-11-06T00:00:01Z","payload":{"type":"token_count","info":{"model_context_window":100000,"total_token_usage":{"total_tokens":request},"last_token_usage":{"input_tokens":n-5,"output_tokens":5,"cached_input_tokens":0,"reasoning_output_tokens":0,"total_tokens":n}}}})
 }
+
+#[test]
+fn native_turn_reasoning_and_weekly_quota_are_scoped_independently() {
+    let f = Fixture::new();
+    let counters = |reasoning| {
+        json!({
+            "input_tokens": 100, "output_tokens": 10, "total_tokens": 110,
+            "cached_input_tokens": 60, "reasoning_output_tokens": reasoning
+        })
+    };
+    let ledger = |thread, turn, reasoning| {
+        json!({
+            "type": "token_usage_record", "timestamp": "2026-11-06T00:00:02Z",
+            "payload": {"thread_id": thread, "turn_id": turn, "usage": counters(2),
+                        "turn_token_usage": counters(reasoning)}
+        })
+    };
+    let quota = |bucket, primary, secondary| {
+        json!({
+            "type": "event_msg", "timestamp": "2026-11-06T00:00:03Z",
+            "payload": {"type": "token_count", "info": null,
+                        "rate_limits": {"limit_id": bucket, "primary": primary, "secondary": secondary}}
+        })
+    };
+    let weekly =
+        |used| json!({"window_minutes": 10080, "used_percent": used, "resets_at": 1794618525});
+    let short = json!({"window_minutes": 300, "used_percent": 91});
+    f.write(&[
+        header(A),
+        turn(A),
+        ledger(A, A, 8),
+        ledger(B, A, 9),
+        quota("codex", short, weekly(32.5)),
+        quota("other", weekly(99.0), Value::Null),
+    ]);
+    let mut store = HistoryStore::default();
+    let (report, _) = store.read(&f.dir, A, now()).unwrap();
+    assert_eq!(report["turn_reasoning"], 8);
+    assert_eq!(report["weekly_quota"]["used_percent"], 32.5);
+    assert_eq!(report["weekly_quota"]["resets_at"], 1794618525);
+
+    let mut file = fs::OpenOptions::new().append(true).open(f.file()).unwrap();
+    writeln!(file, "{}", turn(B)).unwrap();
+    let (report, _) = store.read(&f.dir, A, now()).unwrap();
+    assert!(report["turn_reasoning"].is_null());
+    assert_eq!(report["weekly_quota"]["used_percent"], 32.5);
+    writeln!(file, "{}\n{}", ledger(A, B, 5), ledger(A, A, 9)).unwrap();
+    let (report, _) = store.read(&f.dir, A, now()).unwrap();
+    assert_eq!(report["turn_reasoning"], 5);
+}
 #[test]
 fn session_totals_use_engine_snapshots_and_survive_compaction() {
     let f = Fixture::new();
@@ -268,7 +318,7 @@ fn history_growth_decline_is_not_a_proven_compaction() {
     h.consume(&turn(A)).unwrap();
     h.consume(&usage(100, 1)).unwrap();
     h.consume(&usage(90, 2)).unwrap();
-    assert_eq!(h.epoch, 1);
+    assert_eq!(h.epoch, 0);
     assert!(!h.samples.back().unwrap().is_compaction);
 }
 #[test]
@@ -380,7 +430,33 @@ fn forecast_uses_completed_turns_and_request_intervals() {
     assert_eq!(f["growth_per_request"], 1000.0);
     assert_eq!(f["last_turn_requests"], 3);
     assert!(f["turns_left"].is_null());
+    assert_eq!(f["outlook"], json!([]));
     assert!(f.get("session_cost").is_none());
+}
+
+#[test]
+fn forecast_uses_only_the_eight_latest_nonnegative_post_compaction_deltas() {
+    let mut samples = vec![sample("before", 9000, true), sample("compact", 100, true)];
+    samples[1]["is_compaction"] = json!(true);
+    let mut current = 100_i64;
+    for (i, delta) in [500, 100, 30, 20, -10, 90, 40, 50, 60, 70, 80]
+        .into_iter()
+        .enumerate()
+    {
+        current += delta;
+        samples.push(sample(&format!("turn-{i}"), current as u64, true));
+    }
+    let report = json!({"samples":samples,"last_request":samples.last()});
+    let reading = json!({"thread_id":"bound","tokens":current,"observed_window":10000,"stale":false,
+        "runtime":{"thread_id":"bound","observed_at":100,"auto_compact":{
+            "thread_id":"bound","observed_at":100,"kind":"effective_runtime_remaining",
+            "source":"same_owner_engine_compaction_trace","active_context_tokens":current,
+            "scope_tokens":current,"scope_limit":9000,"full_context_limit":10000}}});
+    let forecast = forecast::compute(&report, &reading, 100.0).unwrap();
+    assert_eq!(forecast["rate_basis"], 8);
+    assert_eq!(forecast["growth_per_turn"], 55.0);
+    assert_eq!(forecast["last_turn_delta"], 80.0);
+    assert_eq!(forecast["outlook"].as_array().unwrap().len(), 2);
 }
 #[test]
 fn forecast_budget_requires_same_owner_counter_and_freshness() {
