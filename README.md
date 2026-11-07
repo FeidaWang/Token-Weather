@@ -1,6 +1,8 @@
 # Token Weather
 
-Open-source version 1.0.0. Maintained by Feida Wang, trading as RSI AI. MIT License.
+Maintained by Feida Wang, trading as RSI AI. MIT License.
+
+The [Rust local edition 2.0.34](docs/RUST-LOCAL-2.0.34.md) provides a Codex sidebar with context capacity, forecasts and token flow. The scenario planner below is version 1.0.0.
 
 Plan room for the next task from numbers you provide. Run on your computer or deploy on a server you own. The publisher does not operate a shared budget service, require a new subscription or call a paid model API.
 

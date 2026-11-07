@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context · Token Weather</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --surface: light-dark(#fff, #191919);
+  --text: light-dark(#212121, #ebebeb);
+  --muted: light-dark(#656565, #9e9e9e);
+  --line: light-dark(#e6e6e6, #2b2b2b);
+  --track: light-dark(#e9e9e9, #303030);
+  --input: light-dark(#246fc5, #2d8ce5);
+  --output: light-dark(#bd511c, #ed6d28);
+  --warn: light-dark(#98600a, #dfa940);
+  background: var(--surface);
+  color: var(--text);
+  font: 12px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+main {
+  max-width: 560px; margin: 0 auto; padding-block: 4px;
+  padding-inline: clamp(12px, 6vw, 22px) clamp(12px, 5vw, 22px);
+}
+.panel-heading { display: flex; align-items: center; gap: 8px; }
+.panel-heading .toggle { min-width: 0; flex: 1; }
+.panel { width: 100%; }
+button { font: inherit; color: inherit; }
+.toggle {
+  width: 100%; min-height: 31px; padding: 0; border: 0; background: transparent;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  text-align: left; cursor: pointer;
+}
+.toggle[aria-expanded="false"] { min-height: 43px; }
+.toggle:hover .name { color: var(--muted); }
+.name, .collapsed-summary { display: flex; align-items: center; gap: 7px; }
+.chevron { width: 7px; height: 7px; color: var(--muted); }
+.toggle[aria-expanded="true"] .chevron { transform: rotate(90deg); }
+.toggle[aria-expanded="true"] .collapsed-summary { display: none; }
+.collapsed-summary, .number { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mini, .meter { display: flex; overflow: hidden; background: var(--track); border-radius: 4px; }
+.mini { width: 22px; height: 9px; padding: 1.5px; border-radius: 8px; }
+.mini span, .meter span { display: block; height: 100%; width: 0; border-radius: inherit; }
+.mini span, #fill-input { background: var(--input); }
+#fill-output { background: var(--output); }
+.content { padding: 0 0 10px; }
+#estimate { font-size: 13px; }
+#usage { font-size: 12px; text-align: right; }
+.meter { height: 3.5px; margin: 4px 0 7px; }
+.counts { margin: 0; }
+.count {
+  min-height: 22px; display: grid; align-items: center; gap: 0 12px;
+  grid-template-columns: minmax(0, 1fr) 64px 42px;
+}
+.count dt, .count dd { margin: 0; }
+.count dt { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.count dd { text-align: right; }
+.count .share { grid-column: 3; color: var(--text); }
+.count dt::before {
+  content: ""; display: inline-block; width: 9px; height: 9px;
+  margin: 0 12px 0 1px; border-radius: 2px; background: var(--input);
+}
+.count.output dt::before, .count.reasoning_output dt::before { background: var(--output); }
+.count.subset dt::before { opacity: .4; margin-inline-start: 8px; margin-inline-end: 5px; }
+.hint { text-decoration: underline dotted; text-underline-offset: 2px; }
+.state { color: var(--muted); margin: 0; }
+.footer { margin-top: 8px; text-align: right; }
+.footer a { color: var(--muted); text-underline-offset: 2px; }
+.tools { margin-top: 6px; color: var(--muted); }
+.tools summary {
+  display: flex; align-items: center; gap: 7px; min-height: 27px;
+  cursor: pointer; list-style: none;
+}
+.tools summary::-webkit-details-marker { display: none; }
+.tools summary::before {
+  content: ""; width: 5px; height: 5px; flex: 0 0 5px;
+  border-right: 1px solid currentColor; border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg); margin: 0 4px 0 2px;
+}
+.tools details[open] > summary::before, details.tools[open] > summary::before { transform: rotate(45deg); }
+.tools .number { margin-left: auto; }
+.tool-label { min-width: 0; overflow-wrap: anywhere; }
+.catalog-row { min-height: 27px; display: grid; grid-template-columns: minmax(0, 1fr) 118px; align-items: center; gap: 12px; }
+.text-link { padding: 2px 0; border: 0; background: none; color: var(--muted); cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 3px; text-align: left; }
+.text-link:hover { color: var(--text); }
+.catalog-row > span { color: var(--muted); font-size: 11px; text-align: right; }
+.memory-names { padding: 0 0 4px 18px; margin: 0; list-style: none; }
+.memory-names li { padding: 3px 0; overflow-wrap: anywhere; }
+.compact-status { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+.icon { display: inline-block; width: 20px; height: 20px; flex: 0 0 20px; background: currentColor;
+  mask: var(--icon) center / contain no-repeat; -webkit-mask: var(--icon) center / contain no-repeat; }
+.sheet-button { border: 0; padding: 5px 9px; border-radius: 8px; cursor: pointer; background: light-dark(#e8e8e8, #4a4a4a); }
+.sheet-button:hover { background: light-dark(#dcdcdc, #585858); }
+.sheet-button:disabled { opacity: .5; cursor: default; }
+.weather-forecast { margin-top: 12px; padding-top: 14px; }
+.weather-heading { display: flex; align-items: center; gap: 9px; min-height: 32px; }
+.weather-condition { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+#weather-symbol { font-size: 24px; line-height: 1.2; }
+#weather-condition { font-size: 14px; font-weight: 500; white-space: nowrap; }
+.weather-controls { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.band-button { border: 0; background: none; padding: 5px 0 5px 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.band-button:hover { color: var(--muted); }
+@media (max-width: 360px) {
+  #weather-condition { font-size: 13px; }
+  .band-button { font-size: 11px; }
+}
+:root { --surface: light-dark(#ffffff, #191919); --line: light-dark(#e9ebed, #ffffff13); }
+main { width: 100%; max-width: none; margin: 0; padding: 14px 18px; }
+.panel { border: 0; }
+.panel-heading { padding-bottom: 12px; }
+.panel-heading .name { font-size: 13px; font-weight: 600; letter-spacing: -.15px; }
+.panel-heading .chevron { opacity: .55; }
+.content { padding-bottom: 4px; }
+.weather-forecast { border-top: 0; margin: 0; padding: 17px 0 0; }
+.weather-heading { margin-bottom: 19px; }
+#weather-symbol { font-size: 27px; }
+#weather-condition { font-size: 15px; }
+.band-button { color: var(--muted); border-radius: 7px; padding: 4px 8px; font-size: 10px; }
+.band-button:hover { color: var(--text); background: var(--track); }
+.eyebrow { display: block; color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+.hero-caption { display: block; font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
+.catalog-row { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 11px 10px; border-radius: 9px; }
+.catalog-row:has(button:hover) { background: light-dark(#f4f5f6,#ffffff06); border-color: light-dark(#cdd1d5,#ffffff2b); }
+.catalog-row .text-link { color: var(--text); text-decoration: none; font-size: 11px; font-weight: 500; }
+.catalog-row > span { text-align: left; font-size: 10px; }
+.request-body { padding-top: 12px; }
+
+@media (max-width: 360px) { main { padding: 14px 18px; } .hero-caption { font-size: 10px; } .catalog-row { padding: 10px 8px; } .catalog-row .text-link { font-size: 10px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.catalog-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border: 0; border-radius: 0; }
+.catalog-row > span { text-align: right; }
+.catalog-row .text-link { font-size: 12px; }
+.accounting-note { margin: 10px 0 0; font-size: 10px; color: var(--muted); line-height: 1.5; }
+.scale-bands { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 3px; text-align: center; }
+.scale-bands b, .scale-bands small { display: block; font-size: 10px; font-weight: 400; color: var(--muted); }
+.state { margin-top: 9px; font-size: 10px; }
+
+
+/* Compact default: only the essential live reading and trend are expanded. */
+main { padding-block: 10px; }
+.panel-heading { padding-bottom: 7px; }
+.weather-forecast { padding-top: 10px; }
+.weather-heading { margin-bottom: 12px; min-height: 28px; }
+#weather-symbol { font-size: 23px; }
+#weather-condition { font-size: 13px; }
+.eyebrow { margin-bottom: 4px; }
+.catalog-row { min-height: 34px; padding-block: 7px; }
+
+
+
+/* Borderless compact hierarchy. All disclosure rows share the same text/arrow grid. */
+.sr-only { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
+:root { --muted:light-dark(#666d71,#969b9f); --accent:light-dark(#237654,#b7d4c2); --soft:light-dark(#f5f7f6,#ffffff06); }
+main { position:relative; max-width:360px; padding:12px 18px; }
+.panel, .panel:has(.toggle[aria-expanded="false"]), .panel-heading { border:0; }
+.panel-heading { min-height:30px; padding-bottom:17px; gap:10px; }
+.collapsed-summary { display:none !important; }
+.panel-heading .toggle { font:inherit; margin:0; cursor:default; }
+.panel-heading .name { font-size:11px; line-height:20px; font-weight:500; color:var(--muted); letter-spacing:0; }
+#weather-symbol { display:block; width:15px; height:15px; flex:0 0 15px; }
+.weather-label {
+  display:inline-flex; align-items:center; gap:5px; padding:0; border:0;
+  background:none; color:var(--weather,var(--muted)); cursor:pointer; white-space:nowrap;
+}
+.weather-label .disclosure { width:12px; height:12px; flex-basis:12px; }
+#weather-condition { font-size:11px; font-weight:500; line-height:20px; }
+.panel-heading .toggle { gap:12px; }
+:root {
+  --weather-clear:light-dark(#267249,#86d5a0);
+  --weather-fair:light-dark(#284f9d,#8ab4ff);
+  --weather-cloudy:light-dark(#86600f,#e7c276);
+  --weather-showers:light-dark(#a95125,#e9a074);
+  --weather-storm:light-dark(#ad3645,#ed9095);
+}
+.weather-forecast { padding:0; }
+.context-hero strong { grid-row:2; font-variant-numeric:tabular-nums; line-height:1.1; margin:0; padding:0; }
+.context-hero .hero-caption { grid-row:3; font-size:10px; line-height:16px; margin:0; color:var(--muted); }
+#compact-session {
+  min-height:27px; padding:3px 8px; border:0; border-radius:7px;
+  background:light-dark(#edf1ef,#ffffff14); color:var(--text);
+  line-height:20px; font-size:11px; font-weight:550;
+}
+#compact-session:hover:not(:disabled) { background:light-dark(#e1e9e5,#ffffff20); }
+#compact-session[data-recommended="true"] {
+  background:light-dark(#276546,#a7dcb6); color:light-dark(#fff,#143421);
+}
+#compact-session[data-recommended="true"]:hover:not(:disabled) { background:light-dark(#1e5338,#bde9c9); }
+#compact-session:disabled { color:var(--muted); opacity:.65; }
+#forecast-band {
+  display:flex; align-items:center; gap:7px; width:100%;
+  min-height:28px; margin-top:6px; padding:0; border:0; background:none;
+  color:var(--text); line-height:20px; font-size:12px; font-weight:600;
+}
+#forecast-band .icon { width:12px; height:12px; flex:0 0 12px; color:var(--muted); }
+#forecast-projection { margin-inline-start:auto; color:var(--chart-future); font-size:11px; font-weight:400; }
+#forecast-projection[hidden] + .icon { margin-inline-start:auto; }
+#forecast-band:hover:not(:disabled) { color:var(--text); }
+#forecast-band[aria-expanded="true"] { color:var(--text); background:none; }
+#forecast-band:disabled { opacity:.5; }
+.disclosure,.row-arrow { transition:transform .15s; }
+[aria-expanded="true"] > .disclosure,details[open] > summary > .disclosure,
+.text-link[aria-expanded="true"] > .row-arrow { transform:rotate(90deg); }
+#forecast-details { padding:4px 0 6px; }
+#forecast-chart { display:block; width:100%; height:auto; }
+#forecast-chart text { font-size:12px; fill:var(--muted); }
+#forecast-chart .chart-tick { font-family:ui-monospace, SFMono-Regular, monospace; }
+#forecast-chart .chart-limit-label { fill:var(--boundary-color); }
+.chart-axis { fill:none; stroke:var(--chart-axis); }
+.chart-series { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+.forecast-metrics { margin:4px 0 0; font-size:11px; }
+.forecast-metrics > div { display:flex; justify-content:space-between; align-items:baseline; gap:8px; min-height:21px; }
+.forecast-metrics dt,.forecast-note { color:var(--muted); }
+.forecast-metrics dd { margin:0; text-align:end; }
+.forecast-note { margin:4px 0 0; font-size:11px; }
+.weather-scale { margin-top:8px; }
+.scale-basis { margin:4px 0 0; font-size:10px; color:var(--muted); }
+.scale-bands .icon { display:block; width:16px; height:16px; margin:0 auto 3px; color:var(--band); }
+.catalog-row { border:0; min-height:36px; padding:0; display:block; position:static; }
+.catalog-row .text-link { display:grid; grid-template-columns:minmax(0,1fr) auto 12px; align-items:center; gap:10px; width:100%; min-height:36px; padding:0; border:0; background:none; line-height:20px; font-size:11px; font-weight:400; color:var(--muted); }
+.catalog-row .text-link > span:not(.icon) { line-height:20px; }
+.catalog-row .text-link > .row-count { font-size:10px; font-variant-numeric:tabular-nums; color:var(--muted); }
+.catalog-row .text-link > .row-arrow { display:block; width:12px; height:12px; flex-basis:12px; margin:0; color:var(--muted); }
+.catalog-row:has(button:hover) { border:0; background:none; }
+.catalog-row .text-link:hover { color:var(--text); }
+.request-body { padding:8px 0 12px; }
+.count dt::before { display:none; }
+.accounting-note { font-size:10px; }
+.panel {
+  --flow-fresh: light-dark(#2466cf,#6a9eff);
+  --flow-cached: light-dark(#067e83,#44c6ba);
+  --flow-write: light-dark(#906100,#e5b45a);
+  --flow-output: light-dark(#b94f29,#f38e62);
+  --flow-reasoning: light-dark(#7c50b8,#ba9aff);
+  --chart-actual: light-dark(#227647,#6acb89);
+  --chart-future: light-dark(#1c5fba,#78adff);
+  --chart-limit: light-dark(#a14747,#e99696);
+  --chart-axis: light-dark(#6b747a,#b4babf);
+  --reserve: light-dark(#cbd0d8,#5a606b);
+}
+.capacity-meter {
+  position:relative; height:6px; margin:6px 0 4px; border-radius:8px;
+  background:linear-gradient(to bottom, #ffffff38, transparent 80%),
+    linear-gradient(to right,
+    var(--weather-clear) 0 var(--clear-end),
+    var(--weather-fair) var(--clear-end) var(--fair-end),
+    var(--weather-cloudy) var(--fair-end) var(--cloudy-end),
+    var(--weather-showers) var(--cloudy-end) var(--showers-end),
+    var(--weather-storm) var(--showers-end) 100%);
+}
+.capacity-meter .reserve {
+  position:absolute; inset-block:0; right:0; background:var(--reserve);
+  border-inline-start:1px solid var(--surface); border-radius:0 8px 8px 0;
+}
+.capacity-marker {
+  position:absolute; z-index:1; inset-block:-2px;
+  left:clamp(2px, var(--meter-position), calc(100% - 2px));
+  width:4px; transform:translateX(-50%); border-radius:2px;
+  background:light-dark(#202020,#fff);
+  box-shadow:0 0 0 1px light-dark(#fff,#191919);
+}
+.capacity-key,.forecast-key { display:flex; flex-wrap:wrap; gap:4px 12px; margin:0; color:var(--muted); font-size:10px; }
+.capacity-key > span,.forecast-key > span { display:inline-flex; align-items:center; gap:5px; }
+.key-mark { display:inline-block; width:8px; height:8px; border-radius:2px; background:var(--key-color); }
+.forecast-key { color:var(--text); font-size:11px; gap:4px 14px; }
+.forecast-key .key-mark { width:7px; height:7px; border-radius:0; }
+.forecast-key .history-dot { border-radius:50%; background:var(--chart-actual); }
+.forecast-key .projected-diamond { background:var(--chart-future); transform:rotate(45deg) scale(.8); }
+.forecast-key .compaction-mark { width:0; background:none; border-inline-start:2px dashed var(--flow-write); }
+.scale-bands span[aria-current="true"] b { font-weight:650; color:var(--weather); }
+.request-body { padding:2px 0 0; }
+.flow-bar { display:flex; height:9px; margin:0 0 7px; overflow:hidden; border-radius:4px; background:var(--track); }
+.flow-bar span {
+  min-width:0; height:100%;
+  background:linear-gradient(to bottom, #ffffff30, transparent 80%), var(--flow-color);
+}
+.flow-bar span + span { box-shadow:inset 1px 0 var(--surface); }
+.flow-fresh { --flow-color:var(--flow-fresh); }
+.flow-cached { --flow-color:var(--flow-cached); }
+.flow-write { --flow-color:var(--flow-write); }
+.flow-output { --flow-color:var(--flow-output); }
+.flow-reasoning { --flow-color:var(--flow-reasoning); }
+.count { min-height:25px; gap:0 8px; grid-template-columns:minmax(0,1fr) max-content minmax(46px,max-content); }
+.count dt::before { display:inline-block; vertical-align:1px; width:8px; height:8px; margin:0 8px 0 0; background:var(--flow-color); }
+.count .share { color:var(--text); }
+.accounting-note { margin:6px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+.subpanel { margin-top:8px; }
+.subpanel > summary { display:flex; align-items:center; gap:7px; justify-content:space-between; min-height:32px; cursor:pointer; color:var(--text); list-style:none; }
+.subpanel > summary::-webkit-details-marker { display:none; }
+.subpanel > summary .icon { width:12px; height:12px; flex:0 0 12px; color:var(--muted); }
+.subpanel > summary .number { margin-inline-start:auto; }
+.subpanel p:last-child { margin-bottom:8px; }
+.local-cost { margin:10px 0 8px; }
+.local-cost .usage-value dt { color:var(--text); }
+.usage-value { display:flex; justify-content:space-between; gap:8px; margin-top:4px; color:var(--muted); }
+.usage-value dd { margin:0; color:var(--text); }
+.panel-heading { min-height:28px; padding-bottom:4px; }
+.panel-heading .name { gap:7px; color:var(--text); font-size:12px; font-weight:600; }
+.brand-logo { display:block; flex:0 0 19px; border-radius:4px; }
+.context-hero { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:2px 8px; padding-top:3px; }
+.context-hero #forecast-context { margin-inline-end:3px; font-size:25px; font-weight:600; letter-spacing:-.7px; }
+.context-hero .hero-caption { font-size:12px; }
+.capacity-key { min-height:16px; gap:3px 10px; }
+.compact-budget { display:flex; flex-wrap:wrap; gap:3px 6px; align-items:baseline; margin:3px 0 0; font-size:11px; color:var(--muted); }
+.compact-budget strong { color:var(--text); font-weight:550; }
+.session-actions { margin:4px 0 0; }
+.session-action-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 8px; }
+.usage-section { margin-top:3px; }
+.usage-section h2 { margin:0; font-size:12px; font-weight:600; }
+.usage-section .subpanel { margin-top:0; }
+.usage-section .subpanel > summary { min-height:28px; }
+.request-body { padding:0 0 4px; }
+.flow-bar { height:6px; margin:1px 0 4px; }
+.count { min-height:21px; }
+.local-cost { margin:4px 0; }
+.account-limits { margin:6px 0 0; font-size:11px; }
+.account-limits dd { text-align:end; }
+@media (prefers-reduced-motion: no-preference) {
+  main[data-entering] { --entrance-duration:780ms; --entrance-step:150ms; }
+  main[data-entering] :is(.panel-heading,#status,.capacity-entrance,.forecast-entrance,
+      #token-flow-title,#request-details,#session-details,#memory-link-row,#memory,.account-limits,.footer) {
+    animation:panel-enter var(--entrance-duration) cubic-bezier(.22,.68,.28,1) both;
+    animation-delay:calc(var(--entrance-step) * var(--entrance-order, 0));
+  }
+  main[data-entering] .capacity-entrance { --entrance-order:1; }
+  main[data-entering] .forecast-entrance { --entrance-order:2; }
+  main[data-entering] :is(#token-flow-title,#request-details) { --entrance-order:3; }
+  main[data-entering] #session-details { --entrance-order:4; }
+  main[data-entering] :is(#memory-link-row,#memory) { --entrance-order:5; }
+  main[data-entering] :is(.account-limits,.footer) { --entrance-order:6; }
+  @keyframes panel-enter {
+    from { opacity:0; transform:translateY(-12px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .disclosure,.row-arrow { transition:none; }
+}
+@media (prefers-reduced-motion:reduce) { .disclosure,.row-arrow { transition:none; } }
+/* Lucide source icons, ISC license: third_party/lucide-context-icons-LICENSE.txt. */
+.icon-chart-no-axes-combined { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIgMTZ2NSIgLz4KICA8cGF0aCBkPSJNMTYgMTQuNjM5VjIxIiAvPgogIDxwYXRoIGQ9Ik0yMCAxMC42NTZWMjEiIC8+CiAgPHBhdGggZD0ibTIyIDMtOC42NDYgOC42NDZhLjUuNSAwIDAgMS0uNzA4IDBMOS4zNTQgOC4zNTRhLjUuNSAwIDAgMC0uNzA3IDBMMiAxNSIgLz4KICA8cGF0aCBkPSJNNCAxOC40NjNWMjEiIC8+CiAgPHBhdGggZD0iTTggMTQuNjU2VjIxIiAvPgo8L3N2Zz4K"); }
+.icon-chevron-right { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJtOSAxOCA2LTYtNi02IiAvPgo8L3N2Zz4K"); }
+.icon-minimize-2 { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJtMTQgMTAgNy03IiAvPgogIDxwYXRoIGQ9Ik0yMCAxMGgtNlY0IiAvPgogIDxwYXRoIGQ9Im0zIDIxIDctNyIgLz4KICA8cGF0aCBkPSJNNCAxNGg2djYiIC8+Cjwvc3ZnPgo="); }
+.icon-plug { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIgMjJ2LTUiIC8+CiAgPHBhdGggZD0iTTE1IDhWMiIgLz4KICA8cGF0aCBkPSJNMTcgOGExIDEgMCAwIDEgMSAxdjRhNCA0IDAgMCAxLTQgNGgtNGE0IDQgMCAwIDEtNC00VjlhMSAxIDAgMCAxIDEtMXoiIC8+CiAgPHBhdGggZD0iTTkgOFYyIiAvPgo8L3N2Zz4K"); }
+.icon-layers { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIuODMgMi4xOGEyIDIgMCAwIDAtMS42NiAwTDIuNiA2LjA4YTEgMSAwIDAgMCAwIDEuODNsOC41OCAzLjkxYTIgMiAwIDAgMCAxLjY2IDBsOC41OC0zLjlhMSAxIDAgMCAwIDAtMS44M3oiIC8+CiAgPHBhdGggZD0iTTIgMTJhMSAxIDAgMCAwIC41OC45MWw4LjYgMy45MWEyIDIgMCAwIDAgMS42NSAwbDguNTgtMy45QTEgMSAwIDAgMCAyMiAxMiIgLz4KICA8cGF0aCBkPSJNMiAxN2ExIDEgMCAwIDAgLjU4LjkxbDguNiAzLjkxYTIgMiAwIDAgMCAxLjY1IDBsOC41OC0zLjlBMSAxIDAgMCAwIDIyIDE3IiAvPgo8L3N2Zz4K"); }
+.icon-activity { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMjIgMTJoLTIuNDhhMiAyIDAgMCAwLTEuOTMgMS40NmwtMi4zNSA4LjM2YS4yNS4yNSAwIDAgMS0uNDggMEw5LjI0IDIuMThhLjI1LjI1IDAgMCAwLS40OCAwbC0yLjM1IDguMzZBMiAyIDAgMCAxIDQuNDkgMTJIMiIgLz4KPC9zdmc+Cg=="); }
+.icon-info { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgLz4KICA8cGF0aCBkPSJNMTIgMTZ2LTQiIC8+CiAgPHBhdGggZD0iTTEyIDhoLjAxIiAvPgo8L3N2Zz4K"); }
+.icon-sun { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI0IiAvPgogIDxwYXRoIGQ9Ik0xMiAydjIiIC8+CiAgPHBhdGggZD0iTTEyIDIwdjIiIC8+CiAgPHBhdGggZD0ibTQuOTMgNC45MyAxLjQxIDEuNDEiIC8+CiAgPHBhdGggZD0ibTE3LjY2IDE3LjY2IDEuNDEgMS40MSIgLz4KICA8cGF0aCBkPSJNMiAxMmgyIiAvPgogIDxwYXRoIGQ9Ik0yMCAxMmgyIiAvPgogIDxwYXRoIGQ9Im02LjM0IDE3LjY2LTEuNDEgMS40MSIgLz4KICA8cGF0aCBkPSJtMTkuMDcgNC45My0xLjQxIDEuNDEiIC8+Cjwvc3ZnPgo="); }
+.icon-cloud-sun { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTIgMnYyIiAvPgogIDxwYXRoIGQ9Im00LjkzIDQuOTMgMS40MSAxLjQxIiAvPgogIDxwYXRoIGQ9Ik0yMCAxMmgyIiAvPgogIDxwYXRoIGQ9Im0xOS4wNyA0LjkzLTEuNDEgMS40MSIgLz4KICA8cGF0aCBkPSJNMTUuOTQ3IDEyLjY1YTQgNCAwIDAgMC01LjkyNS00LjEyOCIgLz4KICA8cGF0aCBkPSJNMTMgMjJIN2E1IDUgMCAxIDEgNC45LTZIMTNhMyAzIDAgMCAxIDAgNloiIC8+Cjwvc3ZnPgo="); }
+.icon-cloud { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTcuNSAxOUg5YTcgNyAwIDEgMSA2LjcxLTloMS43OWE0LjUgNC41IDAgMSAxIDAgOVoiIC8+Cjwvc3ZnPgo="); }
+.icon-cloud-rain { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNNCAxNC44OTlBNyA3IDAgMSAxIDE1LjcxIDhoMS43OWE0LjUgNC41IDAgMCAxIDIuNSA4LjI0MiIgLz4KICA8cGF0aCBkPSJNMTYgMTR2NiIgLz4KICA8cGF0aCBkPSJNOCAxNHY2IiAvPgogIDxwYXRoIGQ9Ik0xMiAxNnY2IiAvPgo8L3N2Zz4K"); }
+.icon-cloud-lightning { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNNiAxNi4zMjZBNyA3IDAgMSAxIDE1LjcxIDhoMS43OWE0LjUgNC41IDAgMCAxIC41IDguOTczIiAvPgogIDxwYXRoIGQ9Im0xMyAxMi0zIDVoNGwtMyA1IiAvPgo8L3N2Zz4K"); }
+.icon-refresh-cw { --icon: url("data:image/svg+xml;base64,PHN2ZwogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9ImN1cnJlbnRDb2xvciIKICBzdHJva2Utd2lkdGg9IjIiCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMyAxMmE5IDkgMCAwIDEgOS05IDkuNzUgOS43NSAwIDAgMSA2Ljc0IDIuNzRMMjEgOCIgLz4KICA8cGF0aCBkPSJNMjEgM3Y1aC01IiAvPgogIDxwYXRoIGQ9Ik0yMSAxMmE5IDkgMCAwIDEtOSA5IDkuNzUgOS43NSAwIDAgMS02Ljc0LTIuNzRMMyAxNiIgLz4KICA8cGF0aCBkPSJNOCAxNkgzdjUiIC8+Cjwvc3ZnPgo="); }
+:focus-visible { outline: 2px solid var(--input); outline-offset: 3px; }
+[hidden] { display: none !important; }
+</style>
+<!-- Bundled icon license
+ISC License
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+---
+
+The following Lucide icons are derived from the Feather project:
+
+airplay, alert-circle, alert-octagon, alert-triangle, aperture, arrow-down-circle, arrow-down-left, arrow-down-right, arrow-down, arrow-left-circle, arrow-left, arrow-right-circle, arrow-right, arrow-up-circle, arrow-up-left, arrow-up-right, arrow-up, at-sign, calendar, cast, check, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-down, chevrons-left, chevrons-right, chevrons-up, circle, clipboard, clock, code, columns, command, compass, corner-down-left, corner-down-right, corner-left-down, corner-left-up, corner-right-down, corner-right-up, corner-up-left, corner-up-right, crosshair, database, divide-circle, divide-square, dollar-sign, download, external-link, feather, frown, hash, headphones, help-circle, info, italic, key, layout, life-buoy, link-2, link, loader, lock, log-in, log-out, maximize, meh, minimize, minimize-2, minus-circle, minus-square, minus, monitor, moon, more-horizontal, more-vertical, move, music, navigation-2, navigation, octagon, pause-circle, percent, plus-circle, plus-square, plus, power, radio, rss, search, server, share, shopping-bag, sidebar, smartphone, smile, square, table-2, tablet, target, terminal, trash-2, trash, triangle, tv, type, upload, x-circle, x-octagon, x-square, x, zoom-in, zoom-out
+
+The MIT License (MIT) (for the icons listed above)
+
+Copyright (c) 2013-present Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Source: https://github.com/lucide-icons/lucide (icons: blocks, book-open, search, x).
+-->
+</head>
+<body>
+<main id="weather-panel">
+<section id="panel" class="panel" aria-label="Context for this chat">
+  <div class="panel-heading"><h1 id="toggle" class="toggle">
+    <span class="name"><img class="brand-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAJuElEQVR42u3dzZNcVRnH8f4nYIF7FiAuREPpgoyuRVwg8v4m4NsOIWzUGhAhWGGpsINiQ4BACai86iSTQGISk7AyaAgbUUgCJJMoGqi69JmqIZ156emevn37nvN8nqpvFSUDdbz3/L7neU5Ph05HKaWUUkoppZRSquW17vZfTPfykz2fVMC4WbzvJLGB+sLF66fSw/7OI6/N2IRoI2lvpj2a9qrE1hh6mwu5dgpkIPQAGQwSfO09IowJRLDoIs/GQNSuIGzwz/vypfMn/o93n66AqKQMpCwIPkAEZYvgq7f9fNrLBlYmZcSpD+gGpooJv5cKDE/2EnDqA6N3A8IPkIDwAyRg3gfcCwg/QAKtKS8GaI5Whf/yh1818wMNkjLXmvD/6C//rwA0y8QlIPxAUAmkiwgvAJg8jV8KCj8QWAJafyDoKPCVW3827YED7SNlU+sPGAW0/oBRwOkP6AKc/oAuYKSLvx/u+l8FIA9qvRD0QIH8qG329zCB/KjlLuDbv31lxsME8iNl1+kP6AJc/gEuA13+AS4Dtf+AMUD7DxgDtP+AMUD7DxgDFtr/H+z8uAJQBkONAZf95uUZD21wXtjx+Oe8tf3uqpr9Vl/Sz/T+M54hxk3K9MAC8MBWD/wgQR+WBTF4xhgHBNDC0JMBWiUA8/8ZHnpjb6Oh7yeDtBbvBGO/ByCA9gSfCEAAgk8EIIBxk0PwlxOBjY1aBRDx1M8t+IvRDaC2i0Cnfp7oBlCLAG5/479V6eQy66/1biDCO8TaCC+ATa/vLS74i0n/H212EEDA8JMACCB4+EkABBA8/CQAAggefhJAaAEIPwkgsADe2r5B+D//iHCDACCOAISfBBBUAFp/owACC0DQ+yMIBLBi3fb6f6qcOaj1X5X0jHJ/z1gbRQtg0449Aj7oKNB9VgJBAEUJwOmvC0BQATj9dQEILACnvy4AQQXg9NcFILAAnP66AAQWgCCPhmAQQLYCeH7HY0I8IukZCgcBZCkA7b8xADUK4NYdp6qcEOB6yO29Y20UJYDnt2v/axsDus9SQAggKwEcnNX+1zYGdJ+lgBBAR/tvDAABEAABgADM/+4BQAAEQAAgAAIgABCATwB8EgACcAHoIhAEQAAEAAIggPIEsOWdMxw4dqo6dbo/6Wd6/xmBy1AA399+ssoBYa2f04cfq7YcXj3ow5L+nYlc9lbJEACWhP7jY7trD33fLoEMCIAAJsenBzbMB7+p0PfrDB54UygJgAAaC36Tp/0wXQEREAABjJE2Bn85EQgpAQyEXwQafMZve/CXGw2ElQD68tysXwXOsd03FhAAATQQ/lyDvxgSIAACKGzWdzdAAC4ChZ8E2iiAW2bnqlwQ+hjh75VATvuzjRQlAJ8ExAk/CRDAEn43+6jwBwo/CRCAMSB4+EmAAIwBwcNPAgQQegwo6XP+Ubn/gFCHFkC0MUD4SYAAAo8BWn+jAAEs4sHZXb7YE5ynD58U8KgCiNIFCHp/BDywAErvArT+RoFGBHDzthNVrhycvcvFX/QLwf1zVc57eNwULYCN23Y5/YOz/9hJQY8qgBK7AKe/LoAAhiSXG/0FhLZenjpMAKEF0MZRYOGP4tbON4OwBxZAm0YBodcFEEBACWjtXQYSQMBRIPc/jdcYQAAVCfi4zhhAACTg1CeAaAK4aevxqkQ2btvpc/qAlLqf10pYAcxLYOtO4ScAAogqgDolIPyZjAFvzwk+ASyVwN9G+IhQ+PP7SPBX+04QAAGczVokIPw6AgIIPBK47ScCAgjaDQh/eUQbDQhgjXcDWv+y7wgIgAD6isDpTwIEEFQEvthjJCCAwAgGCYQRwI0zH1U4w1OH5oQiIKXuZwIYkv1HTwpExDuB7nsngODct0/7TwIEoP1HWNIhQADaf7gPIIBo2PyY/7XhbidIANp/6AIIgACgCyAAAoAugADM//CJQFECuOHPH1b40IbHsr8XkPu+JgACwAgQAAEg8hjw1+MEQACIypOHThAAAYAACIAAEI59R+cIgADgIpAAiia1ejY7CIAAAAIgAIAAQpA+67XRQQBBSTe9NjpCCuD6P31QReaXe30RCP0/Bsx5fxPAKjj90Y/Nh44TgNMfBEAATn+EIx0SBFAoNjhWI/c9TgDafwS9ACSAPqTZziZHye0/AZj/Ebj9JwDzPwiAAAgABLBCXffasSoiNjhWo4R9TgAEAAIgAAIAARAAAYAACIAAQAAEABAAAQAEEIx9R/wmIPp8D6C7PwigYDb/w3cB0OfPAejuDwIomHv3+o+BYGXS/iAA9wAw/5ctgGtfPVpFxT0AVpr/S9njBNCHe/b4UhCWkvYFAegC4PQnAF0AnP4EoAuA058AdAFw+hMACUD4CcAoAK0/AZAAhJ8ASADCn50ArnnlSIWl3LPbnUDRM3/3/UbYxwQwAtO7fW24xFM/vdcoe5gAiAABg08ARIDAwSeABmTwxN8/IoQWBj69l8ihJwAABAAQAAEABEAAAAEQAEAABAAQQLeufvn9CkCZEABAAAQAEAABAARAAAABEABAAB4SQAAYK5c8tLU6/+4t1Tk3PzJP+uv0v1lPO9dDAKiN3o29mPT3rKdd6yEANLK5J7HJrYcAzqqrXnqvwnhILexqm3uB9LPWM9n1lAgBTJBBTrfeU856JrseAkCtDLq5F7Ceya4npAC+eN2d0x6UwFlPeaRsEwABWA8BEAABWA8BEAABWA8BuAgkAOtxAUgAAmc9BNDpfPPXz854YAJHAOWQMj2wANwDCJz1BJ3/U537pa9PeWgCRwDlkDLdGaa+9+K/K9TLsBvceia7npLoDFupZfDgBI4A8meo9r93DPDwBI4A8mfo9t8YMB7O3zDEt926P2s9k11P2PbfGDAe1m0a/Pvu6WetZ7LrCdv+GwMme8o1ebpZj/a/b33jwWdmPMjmNvkkNrf1lEnKbmfU0gWMr93t3ejpryfZ1lqP099lIODyz2UgEPryb7ma2rhl5so//qsC0G5SVjt1V5onPFyg/dQ2++sCAKe/LgCIfvov1IXX/nTagwbaR8pmp4kyCgCBWn+jABC89ScBQPiNAkDU1p8EAOEnAUD4z67v/uHdCkAzdNpW51z0tSkvBhg/KWudNhYJAEHDv/hOwMsC6qN1Mz8JAMJPAoDwuxcAQs77g0pANwAMfuoXE/7euuCaO6a9YGBlUkY6JZduAAh06q8mgit+/88KiEq44C83FtgIiEjx7f6wHcH6B57WEaBo0h4PfeIPIgJdAUo87QWfDCD0ahQZGBPQ5vZe6Bu+QOzFJkRTJ3svkqiUUkoppZRSSqm212dKY0g90rG8cwAAAABJRU5ErkJggg==" width="19" height="19" alt="">Token Weather</span>
+    <span id="collapsed-summary" class="collapsed-summary" hidden>
+      <span id="headline" class="number"></span>
+      <span class="mini" aria-hidden="true"><span id="mini-fill"></span></span>
+    </span>
+  </h1></div>
+  <div id="content" class="content">
+    <p id="status" class="state" role="status">Waiting for a reading</p>
+    <section id="weather-forecast" class="weather-forecast" aria-label="Context and forecast">
+      <div class="capacity-entrance">
+        <div class="context-hero">
+          <button id="weather-label" class="weather-label" type="button" aria-expanded="false" aria-controls="weather-scale" title="Weather scale">
+            <strong id="forecast-context">—</strong><span class="sr-only">context used</span>
+            <span id="weather-symbol" class="icon icon-cloud" aria-hidden="true"></span><span id="weather-condition">Waiting</span>
+            <span class="sr-only">Weather scale</span><span class="icon icon-chevron-right disclosure" aria-hidden="true"></span>
+          </button>
+          <span id="forecast-context-tokens" class="hero-caption number"></span>
+        </div>
+        <div id="forecast-meter" class="capacity-meter" role="progressbar" aria-label="Context window used" aria-valuemin="0" aria-valuemax="100" hidden>
+          <span id="forecast-meter-reserve" class="reserve" aria-hidden="true" hidden></span>
+          <span class="capacity-marker" aria-hidden="true"></span>
+        </div>
+        <p id="capacity-key" class="capacity-key" hidden>
+          <span id="capacity-free-row"><span id="capacity-free"></span></span>
+          <span id="capacity-reserve" hidden><i class="key-mark" style="--key-color:var(--reserve)" aria-hidden="true"></i><span id="capacity-reserve-label"></span></span>
+        </p>
+        <div id="weather-scale" class="weather-scale" role="group" aria-label="Weather scale" hidden>
+          <div class="scale-bands">
+            <span id="scale-Clear" style="--band:var(--weather-clear)"><i class="icon icon-sun" aria-hidden="true"></i><b>Clear</b><small>0–35%</small></span>
+            <span id="scale-Fair" style="--band:var(--weather-fair)"><i class="icon icon-cloud-sun" aria-hidden="true"></i><b>Fair</b><small>35–55%</small></span>
+            <span id="scale-Cloudy" style="--band:var(--weather-cloudy)"><i class="icon icon-cloud" aria-hidden="true"></i><b>Cloudy</b><small>55–70%</small></span>
+            <span id="scale-Showers" style="--band:var(--weather-showers)"><i class="icon icon-cloud-rain" aria-hidden="true"></i><b>Showers</b><small>70–85%</small></span>
+            <span id="scale-Storm" style="--band:var(--weather-storm)"><i class="icon icon-cloud-lightning" aria-hidden="true"></i><b>Storm</b><small>85%+</small></span>
+          </div>
+          <p id="weather-basis" class="scale-basis" hidden></p>
+        </div>
+        <p id="forecast-budget" class="compact-budget" hidden><strong id="forecast-remaining">—</strong><span>to auto-compact</span><span id="forecast-boundary"></span></p>
+        <div class="session-actions">
+          <div class="session-action-row">
+            <button id="compact-session" class="sheet-button" type="button" title="Manual compaction is unavailable for this chat" disabled>Compact session</button>
+          </div>
+          <p id="compact-status" class="compact-status" role="status" hidden></p>
+        </div>
+      </div>
+      <div class="forecast-entrance">
+        <button id="forecast-band" class="band-button" type="button" aria-label="Show forecast" aria-describedby="forecast-estimate" title="Show forecast" aria-expanded="false" aria-controls="forecast-details">
+          <span>Context forecast</span><span id="forecast-projection" class="number" aria-hidden="true" hidden></span><span class="icon icon-chevron-right disclosure" aria-hidden="true"></span>
+        </button>
+        <span id="forecast-estimate" class="sr-only"></span>
+        <div id="forecast-details" hidden>
+          <h3 class="sr-only">Context forecast</h3>
+          <p id="forecast-key" class="forecast-key" hidden>
+            <span><i class="key-mark history-dot" aria-hidden="true"></i>History</span>
+            <span id="forecast-key-projected" hidden><i class="key-mark projected-diamond" aria-hidden="true"></i>Projected</span>
+            <span id="forecast-key-compact" hidden><i class="key-mark compaction-mark" aria-hidden="true"></i>Compaction</span>
+          </p>
+          <svg id="forecast-chart" viewBox="0 0 360 150" role="img" aria-label="Context history and next five turns"></svg>
+          <dl id="forecast-metrics" class="forecast-metrics" hidden>
+            <div id="forecast-growth-row" hidden><dt>Average growth</dt><dd class="number"><span id="forecast-growth"></span><small id="forecast-sample" class="sr-only"></small></dd></div>
+            <div id="forecast-last-row" hidden><dt>Last turn</dt><dd class="number"><span id="forecast-last"></span><small id="forecast-requests" class="sr-only"></small></dd></div>
+          </dl>
+          <p id="forecast-note" class="forecast-note" hidden></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="usage-section" aria-labelledby="token-flow-title">
+      <h2 id="token-flow-title">Token flow</h2>
+      <details id="request-details" class="subpanel" open>
+        <summary>Latest request<span id="usage" class="number"></span><span class="icon icon-chevron-right disclosure" aria-hidden="true"></span></summary>
+        <div class="request-body">
+          <div id="meter" class="flow-bar" aria-hidden="true" hidden></div>
+          <dl id="counts" class="counts" aria-label="Share of latest request tokens" hidden></dl>
+          <p id="request-note" class="accounting-note" hidden>Breakdown unavailable</p>
+        </div>
+      </details>
+      <details id="session-details" class="subpanel" open hidden>
+        <summary>Chat usage<span id="session-total" class="number"></span><span class="icon icon-chevron-right disclosure" aria-hidden="true"></span></summary>
+        <div id="session-meter" class="flow-bar" aria-hidden="true" hidden></div>
+        <dl id="session-counts" class="counts" aria-label="Share of recorded chat tokens"></dl>
+        <div id="local-cost" class="local-cost" hidden>
+          <dl class="counts">
+            <div class="usage-value"><dt id="local-cost-label">Estimated API cost</dt><dd id="local-cost-usd" class="number"></dd></div>
+          </dl>
+          <p id="local-cost-coverage" class="accounting-note" hidden></p>
+        </div>
+      </details>
+    </section>
+    <div id="memory-link-row" class="catalog-row" hidden><button id="memory-link" class="text-link" type="button" aria-controls="memory" aria-expanded="false"><span>Memory files</span><span id="memory-link-count" class="row-count"></span><span class="icon icon-chevron-right row-arrow" aria-hidden="true"></span></button></div>
+    <details id="memory" class="tools" hidden>
+      <summary><span class="tool-label">Memory files</span><span id="memory-count" class="number"></span></summary>
+      <ul id="memory-names" class="memory-names"></ul>
+    </details>
+    <dl id="account-limits" class="account-limits" aria-label="Codex account limits" hidden>
+      <div class="usage-value"><dt>Weekly usage</dt><dd id="weekly-usage" class="number">Unavailable</dd></div>
+      <div class="usage-value"><dt>Banked Reset</dt><dd id="banked-reset" class="number">Unavailable</dd></div>
+    </dl>
+    <div id="footer" class="footer" hidden><a href="/">Open weather <span aria-hidden="true">→</span></a></div>
+  </div>
+</section>
+</main>
+<script>
+"use strict";
+(() => {
+  const live = __WEATHER_LIVE__;
+  const mcp = __CONTEXT_MCP__;
+  let data = __WEATHER_DATA__;
+  let expectedThread = data.thread_id;
+  let error = false;
+  let changed = false;
+  const el = id => document.getElementById(id);
+  const count = value => Number.isSafeInteger(value) && value >= 0;
+  const tokenNumber = value => value.toLocaleString();
+  const compact = value => value >= 1e6 ? Math.round(value / 10000) / 100 + "M" :
+    value >= 100000 ? Math.round(value / 100) / 10 + "k" :
+    value >= 1000 ? Math.round(value / 10) / 100 + "k" : tokenNumber(value);
+  const percentText = (n, total) => {
+    if (!total) return "—";
+    const pct = n / total * 100;
+    return pct > 0 && pct < 0.1 ? "<0.1%" : pct.toFixed(1) + "%";
+  };
+  let memorySignature = null;
+  let compactSending = false;
+  let compactUncertain = false;
+  let compactMessage = "";
+  const textNode = (tag, text, className) => {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  };
+  const fresh = (value, seconds = 15) => value && typeof value === "object" && value.thread_id === expectedThread &&
+    typeof value.observed_at === "number" && Number.isFinite(value.observed_at) &&
+    value.observed_at <= Date.now() / 1000 + 1 && Date.now() / 1000 - value.observed_at <= seconds;
+
+  function renderMemory() {
+    const memory = data.memory_files;
+    const valid = mcp && !error && !changed && fresh(memory) && memory.source === "thread_memory_sources" &&
+      count(memory.count) && Array.isArray(memory.files) && memory.files.length === memory.count && memory.count <= 1000 &&
+      memory.files.every(file => file && typeof file.path === "string" && file.path.length > 0 && file.path.length <= 4096) &&
+      new Set(memory.files.map(file => file.path)).size === memory.count;
+    el("memory").hidden = !valid;
+    el("memory-link-row").hidden = !valid;
+    if (!valid) {
+      memorySignature = null;
+      el("memory").open = false;
+      el("memory-names").replaceChildren();
+      el("memory-count").textContent = el("memory-link-count").textContent = "";
+    } else {
+      const signature = JSON.stringify(memory.files);
+      if (signature !== memorySignature) {
+        el("memory-names").replaceChildren(...memory.files.map(file => textNode("li", file.path)));
+        el("memory-count").textContent = el("memory-link-count").textContent = tokenNumber(memory.count);
+        memorySignature = signature;
+      }
+    }
+    el("memory-link").setAttribute("aria-expanded", String(!!el("memory").open));
+  }
+
+  function renderRemaining(growth) {
+    const budget = data.runtime?.auto_compact;
+    const measured = !error && !changed && !data.runtime?.awaiting_usage && fresh(data.runtime, 5) && fresh(budget, 5) &&
+      ["effective_runtime_remaining", "sampling_runtime_remaining"].includes(budget.kind) &&
+      budget.source === "same_owner_engine_compaction_trace" && budget.active_context_tokens === data.tokens && count(budget.remaining_tokens);
+    if (!measured) return;
+    el("forecast-budget").hidden = false;
+    el("forecast-remaining").textContent = compact(budget.remaining_tokens);
+    const turns = typeof growth === "number" && growth > 0 ? "~" + Math.ceil(budget.remaining_tokens / growth) + " turns" : "";
+    el("forecast-boundary").textContent = [budget.kind === "sampling_runtime_remaining" ? "Sampling" : "", turns].filter(Boolean).join(" · ");
+    el("forecast-remaining").title = tokenNumber(budget.remaining_tokens) + " tokens at " + new Date(budget.measured_at * 1000).toLocaleTimeString() +
+      (budget.kind === "sampling_runtime_remaining" ? ". Turn-end policy may compact earlier." : "");
+    el("forecast-remaining").setAttribute("aria-label", el("forecast-remaining").title);
+  }
+
+  function renderCapacity(forecast) {
+    const windowSize = data.observed_window, used = data.tokens;
+    const valid = !changed && count(used) && count(windowSize) && windowSize > 0;
+    const limit = forecast?.reference_limit;
+    const showReserve = valid && !forecast?.paused && forecast?.reference_kind === "auto_compact" &&
+      count(limit) && limit > 0 && limit < windowSize && used <= limit;
+    const free = valid ? Math.max(0, (showReserve ? limit : windowSize) - used) : 0;
+    const reserve = showReserve ? windowSize - limit : 0;
+    el("forecast-context").textContent = valid ? percentText(used, windowSize) : "—";
+    el("forecast-context-tokens").textContent = valid ? compact(used) + " / " + compact(windowSize) :
+      count(used) ? compact(used) + " tokens · window unknown" : "Awaiting usage";
+    const meter = el("forecast-meter");
+    meter.hidden = el("capacity-key").hidden = !valid;
+    if (valid) {
+      const position = Math.min(100, used / windowSize * 100);
+      const bandLimit = count(limit) && limit > 0 ? limit : windowSize;
+      meter.setAttribute("aria-valuenow", position);
+      meter.setAttribute("aria-valuetext", tokenNumber(used) + " of " + tokenNumber(windowSize) + " tokens");
+      meter.style.setProperty("--meter-position", position + "%");
+      for (const {label, end} of weatherBands) {
+        if (end !== Infinity) {
+          meter.style.setProperty("--" + label.toLowerCase() + "-end", Math.min(100, end * bandLimit / windowSize) + "%");
+        }
+      }
+    }
+    el("forecast-meter-reserve").hidden = el("capacity-reserve").hidden = !showReserve;
+    el("capacity-free-row").hidden = showReserve;
+    el("forecast-meter-reserve").style.width = showReserve ? reserve / windowSize * 100 + "%" : "0%";
+    el("capacity-free").textContent = compact(free) + " free";
+    el("capacity-reserve-label").textContent = compact(reserve) + " reserve";
+    el("capacity-reserve").title = showReserve ? tokenNumber(reserve) + " tokens after the threshold" : "";
+  }
+
+  let forecastSignature;
+  let forecastBand = "full";
+  const weatherBands = [
+    {label:"Clear", icon:"sun", end:35},
+    {label:"Fair", icon:"cloud-sun", end:55},
+    {label:"Cloudy", icon:"cloud", end:70},
+    {label:"Showers", icon:"cloud-rain", end:85},
+    {label:"Storm", icon:"cloud-lightning", end:Infinity},
+  ];
+  el("weather-label").addEventListener("click", () => {
+    const scale = el("weather-scale");
+    scale.hidden = !scale.hidden;
+    el("weather-label").setAttribute("aria-expanded", String(!scale.hidden));
+  });
+
+  function renderForecast() {
+    const forecast = data.forecast;
+    const valid = !error && !changed && fresh(forecast, 15) && forecast.kind === "turn_forecast" &&
+      Array.isArray(forecast.points) && forecast.points.length <= 100 &&
+      forecast.points.every(p => p && count(p.tokens) && count(p.epoch)) &&
+      Array.isArray(forecast.outlook) && forecast.outlook.length <= 5 &&
+      forecast.outlook.every((p, i) => p && p.step === i + 1 && Number.isFinite(p.tokens) && p.tokens >= 0);
+    el("weather-forecast").hidden = false;
+    renderCapacity(valid ? forecast : null);
+    el("forecast-budget").hidden = true;
+    el("forecast-remaining").textContent = "—";
+    el("forecast-boundary").textContent = "Awaiting sample";
+    el("forecast-remaining").title = "No verified auto-compact threshold for this reading";
+    el("forecast-band").disabled = !valid;
+    el("forecast-details").hidden = !valid || forecastBand !== "full";
+    renderRemaining(null);
+
+    const limit = valid ? forecast.reference_limit : null;
+    const hasLimit = count(limit) && limit > 0;
+    const fraction = hasLimit && count(data.tokens) ? data.tokens / limit : null;
+    const weather = value => value === null ? null : weatherBands.find(({end}) => value < end / 100);
+    const band = weather(fraction);
+    const label = band?.label ?? "Waiting";
+    const color = band ? "var(--weather-" + label.toLowerCase() + ")" : "var(--muted)";
+    const effective = valid && ["auto_compact", "sampling_auto_compact"].includes(forecast.reference_kind);
+    const reference = effective
+      ? forecast.reference_kind === "sampling_auto_compact" ? "sampling threshold" : "auto-compact threshold"
+      : "observed context window";
+    el("weather-forecast").style.setProperty("--weather", color);
+    for (const {label: bandLabel} of weatherBands) {
+      el("scale-" + bandLabel).setAttribute("aria-current", String(bandLabel === label));
+    }
+    el("weather-symbol").className = "icon icon-" + (band?.icon ?? "cloud");
+    el("weather-symbol").title = label;
+    el("panel").style.setProperty("--weather", color);
+    el("weather-condition").textContent = label;
+    el("weather-label").title = fraction === null ? "Weather scale" : "Weather scale · " + reference;
+    const showBasis = effective && fraction !== null && limit !== data.observed_window;
+    el("weather-basis").hidden = !showBasis;
+    el("weather-basis").textContent = showBasis
+      ? "Weather level uses " + percentText(data.tokens, limit) + " of the " + reference + "." : "";
+    if (!valid) {
+      forecastSignature = null;
+      el("forecast-projection").hidden = true;
+      el("forecast-estimate").textContent = "";
+      el("forecast-band").setAttribute("aria-expanded", "false");
+      el("forecast-band").setAttribute("aria-label", "Forecast unavailable");
+      el("forecast-band").title = "Forecast unavailable";
+      return;
+    }
+    el("forecast-details").hidden = forecastBand !== "full";
+    el("forecast-band").setAttribute("aria-label", forecastBand === "full" ? "Hide forecast" : "Show forecast");
+    el("forecast-band").setAttribute("aria-expanded", String(forecastBand === "full"));
+    el("forecast-band").title = forecastBand === "full" ? "Hide forecast" : "Show forecast";
+    const growth = forecast.growth_per_turn;
+    const hasGrowth = typeof growth === "number" && Number.isFinite(growth) && growth >= 0;
+    const hasLast = count(forecast.last_turn_delta);
+    const hasRequests = count(forecast.last_turn_requests);
+    el("forecast-metrics").hidden = !hasGrowth && !hasLast && !hasRequests;
+    el("forecast-growth-row").hidden = !hasGrowth;
+    el("forecast-last-row").hidden = !hasLast && !hasRequests;
+    el("forecast-growth").textContent = hasGrowth ? "+" + compact(growth) + "/turn" : "";
+    const perRequest = forecast.growth_per_request;
+    const sample = Number.isFinite(perRequest) && perRequest >= 0 ? "+" + compact(perRequest) + " per request" :
+      hasGrowth ? "From " + forecast.rate_basis + " completed turns" : "";
+    el("forecast-sample").textContent = sample;
+    el("forecast-growth").title = sample;
+    if (effective && count(forecast.remaining_tokens)) {
+      el("forecast-budget").hidden = false;
+      el("forecast-remaining").textContent = compact(forecast.remaining_tokens);
+      el("forecast-boundary").textContent = count(forecast.turns_left) ? "~" + forecast.turns_left + " turns" : "";
+    }
+    renderRemaining(growth);
+    const requests = hasRequests ? forecast.last_turn_requests + (forecast.last_turn_requests === 1 ? " request" : " requests") : "";
+    el("forecast-last").textContent = hasLast ? "+" + compact(forecast.last_turn_delta) : requests;
+    const requestDetail = [hasLast ? requests : "", count(forecast.last_turn_output) ? compact(forecast.last_turn_output) + " out" : ""].filter(Boolean).join(" · ");
+    el("forecast-requests").textContent = requestDetail;
+    el("forecast-last").title = requestDetail;
+
+    const rows = forecast.points, future = forecast.paused ? [] : forecast.outlook;
+    const next = future.at(-1);
+    const projected = next && hasLimit ? "~" + Math.round(next.tokens / limit * 100) + "%" : "";
+    const projection = el("forecast-projection");
+    projection.hidden = !projected;
+    projection.textContent = projected ? projected + " in " + next.step + " turns" : "";
+    const estimate = projected ? "In " + next.step + " turns: " + projected + " of the " + reference +
+      " · " + weather(next.tokens / limit).label + ". Estimate from recent growth." : "";
+    projection.title = el("forecast-estimate").textContent = estimate;
+    if (forecastBand !== "full") return;
+    const chart = el("forecast-chart");
+    chart.setAttribute("aria-label", future.length ? "Context history and next five turns" :
+      forecast.paused ? "Context history. Forecast paused." : "Context history");
+    const signature = JSON.stringify([limit, forecast.reference_kind, rows, future]);
+    if (forecastSignature !== signature) {
+      forecastSignature = signature;
+      chart.replaceChildren();
+      const svg = (tag, attrs, text, parent = chart) => {
+        const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+        if (text !== undefined) node.textContent = text;
+        parent.append(node);
+        return node;
+      };
+      el("forecast-key").hidden = !hasLimit || !rows.length;
+      el("forecast-key-projected").hidden = !hasLimit || !rows.length || !future.length;
+      el("forecast-key-compact").hidden = true;
+      if (!hasLimit || !rows.length) {
+        svg("text", {x:180, y:75, "text-anchor":"middle"}, "Waiting for context history");
+      } else {
+        const left = 45, right = 349, top = 28, bottom = 122, labelsY = 143;
+        const actual = "var(--chart-actual)", projected = "var(--chart-future)";
+        const boundaryColor = effective ? "var(--chart-limit)" : "var(--muted)";
+        const ceiling = Math.ceil(Math.max(1, ...rows.map(p => p.tokens / limit),
+          ...future.map(p => p.tokens / limit)) * 4) / 4;
+        const y = n => bottom - n / limit / ceiling * (bottom - top);
+        const step = (right - left) / Math.max(1, rows.length - 1 + (future.at(-1)?.step ?? 0));
+        const x = i => left + i * step;
+        const last = rows.at(-1), nowX = x(rows.length - 1), nowY = y(last.tokens);
+        svg("path", {d:`M${left},${top}V${bottom}H${right}`, class:"chart-axis"});
+        const ticks = ceiling === 1 ? [0, .25, .5, .75, 1] : [0, .5, 1, ceiling];
+        let previousTickY = Infinity;
+        for (const part of ticks) {
+          const yy = y(part * limit);
+          if (previousTickY - yy < 17) continue;
+          svg("line", {x1:left-4, x2:left, y1:yy, y2:yy, class:"chart-axis"});
+          svg("text", {x:left-8, y:yy+4, "text-anchor":"end", class:"chart-tick"}, compact(part*100) + "%");
+          previousTickY = yy;
+        }
+        const boundaryY = y(limit);
+        svg("line", {x1:left,x2:right,y1:boundaryY,y2:boundaryY,stroke:boundaryColor,"stroke-dasharray":"4 4",opacity:.68});
+        const reference = forecast.reference_kind === "sampling_auto_compact" ? "Sampling threshold" : effective ? "Auto-compact" : "Window";
+        svg("text", {x:right, y:18, "text-anchor":"end", class:"chart-limit-label",
+          style:"--boundary-color:" + boundaryColor}, reference + " · " + compact(limit));
+        let segment = [];
+        const draw = () => {
+          if (segment.length > 1) {
+            svg("polyline", {points:segment.map(p => p.join(",")).join(" "), class:"chart-series", stroke:actual});
+          }
+          segment = [];
+        };
+        rows.forEach((point, i) => {
+          if (i && rows[i-1].epoch !== point.epoch) {
+            draw();
+            const mark = svg("line", {x1:x(i),x2:x(i),y1:top,y2:bottom,
+              stroke:point.compaction ? "var(--flow-write)" : "var(--muted)", "stroke-dasharray":"3 3", opacity:.8});
+            svg("title", {}, point.compaction ? "Context compacted" : "Context history reset", mark);
+            if (point.compaction) el("forecast-key-compact").hidden = false;
+          }
+          segment.push([x(i), y(point.tokens)]);
+        });
+        draw();
+        const dotEvery = Math.ceil(27 / step);
+        rows.forEach((point, i) => {
+          const latest = i === rows.length - 1;
+          const firstInEpoch = rows[i-1]?.epoch !== point.epoch;
+          if (latest || firstInEpoch || i % dotEvery === 0) {
+            const dot = svg("circle", {cx:x(i),cy:y(point.tokens),r:latest ? 3.7 : 2.6,fill:actual});
+            svg("title", {}, (latest ? "Latest: " : "") + tokenNumber(point.tokens) + " tokens", dot);
+          }
+        });
+        if (future.length) {
+          const coords = [[nowX,nowY],...future.map(p => [x(rows.length-1+p.step),y(p.tokens)])];
+          svg("polyline", {points:coords.map(p=>p.join(",")).join(" "),class:"chart-series",stroke:projected,"stroke-dasharray":"3 4"});
+          future.forEach((point, i) => {
+            const px = x(rows.length-1+point.step), py = y(point.tokens);
+            const r = i === future.length-1 ? 4.3 : Math.min(3, step * .36);
+            const diamond = svg("path", {d:`M${px},${py-r}l${r},${r} -${r},${r} -${r},-${r}Z`,
+              class:"forecast-point", fill:projected});
+            svg("title", {}, "+"+point.step+" turns: ~"+compact(point.tokens)+" tokens ("+percentText(point.tokens,limit)+")", diamond);
+          });
+        }
+        for (const xx of new Set([left, nowX, right])) {
+          svg("line", {x1:xx,x2:xx,y1:bottom,y2:bottom+4,class:"chart-axis"});
+        }
+        const nowLabel = future.length ? Math.min(nowX, right-59) : nowX;
+        if (rows.length > 1 && nowLabel >= left+112) {
+          svg("text", {x:left,y:labelsY}, rows.length-1 + " turns ago");
+        }
+        svg("text", {x:Math.max(left, nowLabel), y:labelsY,
+          "text-anchor":nowLabel < left+45 ? "start" : "end"}, "Latest");
+        if (future.length) svg("text", {x:right,y:labelsY,"text-anchor":"end"}, "+"+future.at(-1).step+" turns");
+      }
+    }
+    const waitingForForecast = !forecast.paused && !projected;
+    el("forecast-note").hidden = !waitingForForecast;
+    el("forecast-note").textContent = waitingForForecast ? "Collecting completed turns for a 5-turn estimate." : "";
+  }
+
+  el("forecast-band").addEventListener("click", () => {
+    forecastBand = forecastBand === "full" ? "compact" : "full";
+    renderForecast();
+  });
+
+  function compactionControl() {
+    const runtime = data.runtime;
+    return mcp && !error && !changed && fresh(runtime, 5) && runtime.compaction?.supported
+      ? runtime.compaction : null;
+  }
+
+  function canCompact(control) {
+    return control?.can_compact === true && data.runtime.active === false &&
+      !data.runtime.awaiting_usage && !compactSending && !compactUncertain && !data.collection?.catching_up;
+  }
+
+  function recommendsCompaction() {
+    const {forecast, tokens, observed_window: windowSize} = data;
+    if (!count(tokens)) return false;
+    const verifiedBoundary = fresh(forecast) && forecast.kind === "turn_forecast" &&
+      ["auto_compact", "sampling_auto_compact"].includes(forecast.reference_kind) &&
+      count(forecast.reference_limit) && forecast.reference_limit > 0;
+    const windowLimit = count(windowSize) && windowSize > 0 ? windowSize : Infinity;
+    const limit = verifiedBoundary ? Math.min(forecast.reference_limit, windowLimit) : windowLimit;
+    const fraction = tokens / limit;
+    return fraction >= .60 && fraction < .85;
+  }
+
+  function renderCompaction() {
+    const control = compactionControl();
+    const enabled = canCompact(control);
+    const recommended = enabled && recommendsCompaction();
+    const button = el("compact-session");
+    button.disabled = !enabled;
+    button.dataset.recommended = String(recommended);
+    button.title = recommended ? "Recommended at current context usage" :
+      enabled ? "Compact this chat" : data.runtime?.active === true ? "Available when this response finishes" :
+      "Manual compaction is unavailable for this chat";
+    const states = {requested: "Compaction requested", accepted: "Compaction accepted", running: "Compacting…",
+      waiting_usage: "Compacted · waiting for updated usage", completed: "Compacted", failed: "Compaction failed",
+      unknown: "Waiting for compaction status"};
+    const phase = control?.phase;
+    const inProgress = compactSending || compactUncertain ||
+      ["requested", "accepted", "running", "unknown", "waiting_usage"].includes(phase);
+    const message = compactSending ? "Requesting compaction…" : states[phase] || compactMessage;
+    const showStatus = !!control && !!message && (enabled || inProgress);
+    el("compact-status").hidden = !showStatus;
+    el("compact-status").textContent = message || "";
+  }
+
+  async function compactSession() {
+    if (!canCompact(compactionControl())) return;
+    const binding = expectedThread;
+    compactSending = true; compactMessage = ""; renderCompaction();
+    try {
+      const result = await request("tools/call", {name: "token_weather_compact_session", arguments: {operation_id: crypto.randomUUID()}});
+      if (binding !== expectedThread || changed) return;
+      if (result?.isError || result?._meta?.thread_id !== binding || !result?._meta?.compaction) throw new Error("Compaction request unavailable");
+      data.runtime.compaction = result._meta.compaction;
+    } catch (_) {
+      compactUncertain = true;
+      compactMessage = "Checking compaction status…";
+    } finally {
+      compactSending = false; renderCompaction();
+    }
+  }
+  el("compact-session").addEventListener("click", compactSession);
+
+  el("memory-link").addEventListener("click", () => { el("memory").open = !el("memory").open; renderMemory(); });
+  el("memory").addEventListener("toggle", () => el("memory-link").setAttribute("aria-expanded", String(!!el("memory").open)));
+
+  const localAccountTime = new Intl.DateTimeFormat(undefined, {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+  function renderAccountLimits() {
+    const limits = data.account_limits;
+    const valid = !error && !changed && fresh(limits, 75) && limits.kind === "codex_account_limits";
+    const futureTime = value => count(value) && value > Date.now() / 1000 && value <= 253402300799
+      ? localAccountTime.format(value * 1000) : "";
+    const resets = valid ? futureTime(limits.weekly_resets_at) : "";
+    const expiry = valid ? futureTime(limits.banked_reset_expires_at) : "";
+    const missing = valid && limits.state === "loading" ? "Loading…" : "Unavailable";
+    const weekly = valid && count(limits.weekly_used_percent) &&
+      (limits.weekly_resets_at == null || resets)
+      ? tokenNumber(limits.weekly_used_percent) + "% used" + (resets ? " · Resets " + resets : "")
+      : missing;
+    const banked = valid && count(limits.banked_reset_available) &&
+      (limits.banked_reset_expires_at == null || expiry)
+      ? tokenNumber(limits.banked_reset_available) + " available" + (expiry ? " · Expires " + expiry : "")
+      : missing;
+    for (const [id, value] of [["weekly-usage", weekly], ["banked-reset", banked]]) {
+      const item = el(id);
+      if (item.textContent !== value) item.textContent = value;
+    }
+  }
+
+  function health() {
+    renderMemory();
+    renderCompaction();
+    renderForecast();
+    renderAccountLimits();
+    el("request-details").hidden = changed || !data.last_request;
+    const at = data.last_request?.at;
+    const clock = Date.now() / 1000;
+    const valid = typeof at === "number" && Number.isFinite(at) && at >= 0 && at <= clock + 1;
+    const old = data.stale || !valid || clock - at > data.max_age_seconds;
+    const state = changed ? "Chat binding changed" : error ? "Reading offline" :
+      data.runtime?.awaiting_usage ? "Waiting for updated usage" :
+      data.runtime?.active === true ? "Response running · last reported usage" :
+      data.collection?.catching_up ? "Catching up" : old ? "Last recorded reading" : "";
+    const hasReading = count(data.tokens);
+    const detail = valid ? new Date(at * 1000).toLocaleString() : "";
+    el("usage").title = [el("usage").textContent ? tokenNumber(data.tokens) + " tokens" : "", state, detail].filter(Boolean).join(" · ");
+    el("headline").title = ["Estimated context used", state, detail].filter(Boolean).join(" · ");
+    el("status").hidden = hasReading && !state;
+    if (hasReading && state) { el("status").hidden = !changed && !error; el("status").textContent = state; }
+    if (!hasReading) {
+      const label = changed || error || data.runtime?.awaiting_usage ? state : "Waiting for a reading";
+      if (el("status").textContent !== label) el("status").textContent = label;
+    }
+  }
+
+  function flow(usage, total) {
+    if (!count(total) || !count(usage.input) || !count(usage.output) ||
+      !Number.isSafeInteger(usage.input + usage.output) || usage.input + usage.output !== total) return null;
+    const hasRead = count(usage.cached_input) && usage.cached_input <= usage.input;
+    const cached = hasRead ? usage.cached_input : 0;
+    const hasWrite = count(usage.cache_write_input) && usage.cache_write_input <= usage.input - cached;
+    const written = hasWrite ? usage.cache_write_input : 0;
+    const hasReasoning = count(usage.reasoning_output) && usage.reasoning_output <= usage.output;
+    const reasoning = hasReasoning ? usage.reasoning_output : 0;
+    const parts = [
+      [hasRead && hasWrite ? "Fresh input" : hasRead || hasWrite ? "Other input" : "Input", usage.input-cached-written, "fresh"],
+      ["Cache read", cached, "cached"],
+      ["Cache write", written, "write"],
+      [hasReasoning ? "Other output" : "Output", usage.output-reasoning, "output"],
+      ["Reasoning output", reasoning, "reasoning"],
+    ];
+    const shown = [true, hasRead, hasWrite, true, hasReasoning];
+    return parts.filter((part, i) => shown[i] && part[1] > 0);
+  }
+
+  const flowSignatures = new Map();
+  function renderFlow(breakdown, total, meterId, rowsId) {
+    const meter = el(meterId), rows = el(rowsId);
+    const items = breakdown ?? [];
+    const signature = JSON.stringify([total, items]);
+    if (flowSignatures.get(meterId) === signature) return;
+    flowSignatures.set(meterId, signature);
+    meter.hidden = !items.length || !total;
+    rows.hidden = !items.length;
+    meter.replaceChildren(...items.map(([label, value, tone]) => {
+      const segment = textNode("span", "", "flow-" + tone);
+      segment.style.width = value / total * 100 + "%";
+      segment.title = label + ": " + tokenNumber(value) + " tokens (" + percentText(value, total) + ")";
+      return segment;
+    }));
+    rows.replaceChildren(...items.map(([label, value, tone]) => {
+      const row = textNode("div", "", "count flow-" + tone);
+      const amount = textNode("dd", compact(value), "number");
+      amount.title = tokenNumber(value) + " tokens";
+      row.append(textNode("dt", label), amount, textNode("dd", percentText(value, total), "number share"));
+      return row;
+    }));
+  }
+
+  function render() {
+    const tokens = data.tokens, windowSize = data.observed_window;
+    const hasReading = count(tokens);
+    const hasWindow = count(windowSize) && windowSize > 0;
+    const percent = hasReading && hasWindow ? tokens / windowSize * 100 : null;
+    el("collapsed-summary").hidden = percent === null;
+    el("headline").textContent = percent === null ? "" : "≈" + percentText(tokens, windowSize);
+    el("mini-fill").style.width = Math.min(100, percent ?? 0) + "%";
+
+    const latest = flow(data.last_request || {}, tokens);
+    el("usage").textContent = latest ? compact(tokens) + " tokens" : "";
+    renderFlow(latest, tokens, "meter", "counts");
+    el("request-note").hidden = !data.last_request || !!latest;
+
+    const session = data.session_usage;
+    const cumulative = flow(session || {}, session?.total);
+    el("session-details").hidden = !cumulative;
+    el("session-total").hidden = !cumulative;
+    el("session-total").textContent = cumulative ? compact(session.total) + " tokens" : "";
+    el("session-total").title = cumulative ? tokenNumber(session.total) + " tokens" : "";
+    renderFlow(cumulative, session?.total, "session-meter", "session-counts");
+    renderLocalCost(data.api_cost_estimate);
+    health();
+  }
+
+  function renderLocalCost(cost) {
+    const valid = count(cost?.observed_tokens) && cost.observed_tokens > 0 &&
+      count(cost.priced_tokens) && cost.priced_tokens <= cost.observed_tokens;
+    el("local-cost").hidden = !valid;
+    if (!valid) return;
+    const catchingUp = data.collection?.catching_up === true;
+    const hasAmount = !catchingUp && cost.partial === false && cost.priced_tokens === cost.observed_tokens &&
+      Number.isFinite(cost.usd) && cost.usd >= 0;
+    const usd = new Intl.NumberFormat("en-US", {style:"currency", currency:"USD", minimumFractionDigits:4, maximumFractionDigits:4});
+    el("local-cost-usd").textContent = hasAmount ? cost.usd > 0 && cost.usd < 0.0001 ? "<$0.0001 USD" :
+      "≈" + usd.format(cost.usd) + " USD" : "Unavailable";
+    const asOf = typeof cost.prices_as_of === "string" && /^\d{4}-\d{2}-\d{2}$/.test(cost.prices_as_of) ?
+      " (" + cost.prices_as_of + ")" : "";
+    el("local-cost").title = "Standard API text prices" + asOf + ". Estimate only, not actual charges. Cache writes use the 30-minute rate.";
+    el("local-cost-coverage").hidden = hasAmount;
+    el("local-cost-coverage").textContent = catchingUp ? "Reading local history…" : "Incomplete usage or model records";
+  }
+
+  function accept(next) {
+    if (next?.schema_version !== 1 || typeof next.thread_id !== "string" || !next.thread_id) {
+      if (mcp) data = {};
+      throw new Error("Reading identity unavailable");
+    }
+    if (expectedThread && next.thread_id !== expectedThread) {
+      if (mcp) {
+        data = {};
+        changed = true;
+        compactMessage = ""; compactUncertain = false;
+      }
+      throw new Error("Reading identity changed");
+    }
+    expectedThread = next.thread_id;
+    if (next.available === false) throw new Error("Reading unavailable");
+    data = next;
+    if (data.runtime?.thread_id === expectedThread) compactUncertain = false;
+    changed = false;
+  }
+
+  const panel = el("weather-panel");
+  let entranceReady = !mcp;
+  function enterPanel() {
+    if (!entranceReady || document.hidden || panel.dataset.entering) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    panel.dataset.entering = "true";
+    const groups = panel.getAnimations({subtree: true})
+      .filter(animation => animation.animationName === "panel-enter");
+    Promise.allSettled(groups.map(animation => animation.finished)).then(() => {
+      delete panel.dataset.entering;
+    });
+  }
+  document.addEventListener("visibilitychange", enterPanel);
+  if (mcp && window.IntersectionObserver) {
+    let wasVisible = null;
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && wasVisible === false) enterPanel();
+      wasVisible = entry.isIntersecting;
+    }).observe(panel);
+  }
+
+  function connectHost() {
+    let serial = 0;
+    const pending = new Map();
+    function send(message) {
+      window.parent.postMessage({jsonrpc: "2.0", ...message}, "*");
+    }
+    window.addEventListener("message", event => {
+      if (event.source !== window.parent || event.data?.jsonrpc !== "2.0") return;
+      if (event.data.method === "ui/notifications/tool-result") {
+        const reading = event.data.params?._meta?.reading ?? event.data.params?.structuredContent?.reading;
+        if (reading?.thread_id && reading.thread_id === expectedThread) enterPanel();
+        return;
+      }
+      const reply = pending.get(event.data.id);
+      if (!reply) return;
+      pending.delete(event.data.id);
+      if (event.data.error) reply.reject(new Error("Host request failed"));
+      else reply.resolve(event.data.result);
+    });
+    const dispatch = (method, params) => new Promise((resolve, reject) => {
+      const id = ++serial;
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error("Host request timed out"));
+      }, 8000);
+      pending.set(id, {
+        resolve(value) { clearTimeout(timer); resolve(value); },
+        reject(reason) { clearTimeout(timer); reject(reason); },
+      });
+      send({id, method, params});
+    });
+    // The local stdio server processes calls in order. Start timeouts on dispatch.
+    let toolQueue = Promise.resolve();
+    return (method, params) => {
+      if (method !== "tools/call") return dispatch(method, params);
+      const next = toolQueue.then(() => dispatch(method, params));
+      toolQueue = next.catch(() => {});
+      return next;
+    };
+  }
+
+  const request = mcp ? connectHost() : null;
+  let initialized = false;
+  let refreshing = false;
+  let refreshTimer;
+  async function refresh() {
+    if (refreshing) return;
+    clearTimeout(refreshTimer);
+    refreshing = true;
+    try {
+      if (request) {
+        if (!initialized) {
+          await request("ui/initialize", {
+            protocolVersion: "2026-01-26", appInfo: {name: "Token Weather", version: "1.0.0"}, appCapabilities: {},
+          });
+          window.parent.postMessage({jsonrpc: "2.0", method: "ui/notifications/initialized"}, "*");
+          initialized = true;
+        }
+        const result = await request("tools/call", {name: "token_weather_context", arguments: {section: "runtime"}});
+        accept(result?._meta?.reading ?? result?.structuredContent?.reading);
+      } else {
+        const response = await fetch("/api/context", {cache: "no-store", signal: AbortSignal.timeout(8000)});
+        if (!response.ok) throw new Error("Reading unavailable");
+        accept(await response.json());
+      }
+      error = false;
+    } catch (_) {
+      error = true;
+      // A live memory inventory must not survive a failed refresh.
+      delete data.memory_files;
+    } finally {
+      refreshing = false;
+      refreshTimer = setTimeout(refresh, data.runtime_supported ? 1000 : 5000);
+    }
+    render();
+    if (!entranceReady) {
+      entranceReady = true;
+      enterPanel();
+    }
+  }
+
+  el("account-limits").hidden = !mcp;
+  el("footer").hidden = !live;
+  render();
+  enterPanel();
+  setInterval(health, 1000);
+  if (mcp) refresh();
+  else if (live) refreshTimer = setTimeout(refresh, 5000);
+})();
+</script>
+</body>
+</html>

@@ -9,3 +9,4 @@ __pycache__/
 *.zip
 mcp.remote.json
 native-deployment-test.json
+/rust/token-weather-core/target/
