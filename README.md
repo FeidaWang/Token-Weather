@@ -16,10 +16,6 @@ Readings and forecasts are estimates, not promises. Missing or unsupported data 
 
 ## Try the panel
 
-![Token Weather 2.0.34 panel with demo data](docs/images/token-weather-2.0.34.png)
-
-*The 2.0.34 panel running with example data.*
-
 The latest Rust local release is **2.0.34**, for macOS on Apple silicon. [Download it and see the release instructions](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.0.34). The ZIP must be extracted and its `bin/token-weather-core` registered with a compatible local MCP host; downloading it alone does not install or connect it. See the [release record](docs/RUST-LOCAL-2.0.34.md) for details and the checksum.
 
 Want a preview without connecting your chat? In a clean clone, use the release source:
