@@ -32,7 +32,9 @@ Open the local address printed in the terminal and use **Debug state** to switch
 
 ## Try the scenario planner
 
-The planner is a separate **1.0.0** tool. It works with numbers you enter; it does not automatically read your chat. With Python 3.9 or newer, run this from the repository folder:
+The [Cloudflare plugin package 1.0.1](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.1) supports updates to the existing Token Weather plugin draft. It uses the existing `context-budget` MCP to calculate with numbers you enter. The Rust desktop download above provides live Codex chat readings.
+
+To run the local scenario demo, use Python 3.9 or newer from the repository folder:
 
 ```sh
 python3 -B mcp/demo/server.py --port 0
@@ -42,7 +44,7 @@ Open the local address printed in the terminal. The demo starts with example num
 
 For example, if your reference limit is 100,000 tokens and you've used 65,000, you have 35,000 left against that reference. A task estimated at 20,000 plus a 5,000 output reserve would leave 10,000. These numbers are only as reliable as the inputs; the planner cannot guarantee when Codex will compact a chat.
 
-To connect the planner to an MCP host, see [Local setup](docs/LOCAL-SETUP.md). The optional local observation tool requires Python 3.11+ and an exact chat and workspace binding. For a server you control, see [Self-hosting](docs/SELF-HOSTING.md). The publisher does not operate a shared budget service.
+To connect the planner to an MCP host, see [Local setup](docs/LOCAL-SETUP.md). The optional local observation tool requires Python 3.11+ and an exact chat and workspace binding. For a server you control, see [Self-hosting](docs/SELF-HOSTING.md).
 
 ## Privacy
 

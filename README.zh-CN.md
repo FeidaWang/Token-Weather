@@ -32,7 +32,9 @@ rust/token-weather-core/target/release/token-weather-core serve --demo
 
 ## 试用预算计算器
 
-预算计算器是独立的 **1.0.0** 工具，使用你输入的数字，不会自动读取聊天。在仓库目录中，用 Python 3.9 或更高版本运行：
+[Cloudflare 插件包 1.0.1](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.1) 用于更新现有的 Token Weather 草稿，沿用 `context-budget` MCP，根据输入的数字计算预算。读取 Codex 聊天用量请使用上方的 Rust 桌面版。
+
+如需运行本地演示，在仓库目录中使用 Python 3.9 或更高版本：
 
 ```sh
 python3 -B mcp/demo/server.py --port 0
@@ -42,7 +44,7 @@ python3 -B mcp/demo/server.py --port 0
 
 例如，假设参考上限是 100,000 tokens，已用 65,000，那么距离该上限还剩 35,000。如果下一项任务预计增加 20,000，再为输出预留 5,000，就还剩 10,000。结果的可靠程度取决于输入的数字；计算器不能保证 Codex 何时压缩聊天。
 
-如需将计算器连接到 MCP 宿主，请查看[本地设置](docs/LOCAL-SETUP.md)。可选的本地观测工具需要 Python 3.11 或更高版本，并准确绑定聊天和工作区。如需部署到自己控制的服务器，请查看[自行部署](docs/SELF-HOSTING.md)。发布者不运营共享预算服务。
+如需将计算器连接到 MCP 宿主，请查看[本地设置](docs/LOCAL-SETUP.md)。可选的本地观测工具需要 Python 3.11 或更高版本，并准确绑定聊天和工作区。如需部署到自己控制的服务器，请查看[自行部署](docs/SELF-HOSTING.md)。
 
 ## 隐私
 
