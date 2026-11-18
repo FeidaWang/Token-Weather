@@ -1,4 +1,12 @@
-# Download Token Weather 1.0.0
+# Download Token Weather
+
+## Token Weather Rust 2.1.6
+
+The local Codex Desktop plugin for macOS on Apple silicon. Version 2.1.6 restores token and context window readings in chats created by Codex engine 0.169.0-alpha.11.1.
+
+[Download Token Weather 2.1.6 for Apple silicon](https://github.com/FeidaWang/Token-Weather/releases/download/rust-v2.1.6/token-weather-rust-local-2.1.6-darwin-arm64.zip) · [Release notes and checksums](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.1.6)
+
+## Open-source edition 1.0.0
 
 This is the MIT open-source edition. The ZIP contains source, four skills, local observations, numeric MCP, deployment examples, test tools and documentation. It is not an approved public directory upload.
 

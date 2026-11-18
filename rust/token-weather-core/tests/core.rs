@@ -373,6 +373,21 @@ fn replaced_or_rewritten_transcript_invalidates_cache() {
     assert_eq!(c["cache_reused"], false);
 }
 #[test]
+fn reads_usage_from_supported_desktop_rollouts() {
+    for version in ["0.167.0-alpha.4.1", "0.169.0-alpha.11.1"] {
+        let f = Fixture::new();
+        let mut metadata = header(A);
+        metadata["payload"]["cli_version"] = json!(version);
+        metadata["payload"]["originator"] = json!("Codex Desktop");
+        metadata["payload"]["source"] = json!("vscode");
+        f.write(&[metadata, turn(A), usage(100, 1)]);
+        let (report, _) = HistoryStore::default().read(&f.dir, A, now()).unwrap();
+        assert_eq!(report["tokens"], 100, "{version}");
+        assert_eq!(report["observed_window"], 100000, "{version}");
+    }
+}
+
+#[test]
 fn rejects_foreign_subagent_and_unverified_source() {
     let f = Fixture::new();
     let mut store = HistoryStore::default();

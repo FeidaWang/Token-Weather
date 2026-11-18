@@ -16,14 +16,14 @@ Readings and forecasts are estimates, not promises. Missing or unsupported data 
 
 ## Try the panel
 
-The latest Rust local release is **2.1.4**, for macOS on Apple silicon. [Download it and see the release instructions](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.1.4). The ZIP must be extracted and its `bin/token-weather-core` registered with a compatible local MCP host; downloading it alone does not install or connect it. See the [release record](docs/RUST-LOCAL-2.1.4.md) for details and the checksum.
+The latest Rust local release is **2.1.6**, for macOS on Apple silicon. [Download it and see the release instructions](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.1.6). The ZIP must be extracted and its `bin/token-weather-core` registered with a compatible local MCP host; downloading it alone does not install or connect it. See the [release record](docs/RUST-LOCAL-2.1.6.md) for details and the checksum.
 
 Open **Token Weather Context** from the Codex chat sidebar. The weather scale and token details start expanded. MCP servers can be opened on demand. The entrance plays on the first successful reading or an explicit tool invocation. Switching back to the panel and background refreshes do not replay it. Reduce Motion disables the entrance.
 
 Want a preview without connecting your chat? In a clean clone, use the release source:
 
 ```sh
-git switch --detach rust-v2.1.4
+git switch --detach rust-v2.1.6
 cargo build --release --locked --manifest-path rust/token-weather-core/Cargo.toml
 rust/token-weather-core/target/release/token-weather-core serve --demo
 ```

@@ -19,6 +19,8 @@ const VERSIONS: &[&str] = &[
     "0.162.0-alpha.17.2",
     "0.163.0-alpha.10.2",
     "0.167.0-alpha.3.2",
+    "0.167.0-alpha.4.1",
+    "0.169.0-alpha.11.1",
 ];
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct RecordedUsage {

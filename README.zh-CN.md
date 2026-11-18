@@ -16,14 +16,14 @@ Token Weather 帮你了解 Codex 聊天还可能有多少空间。你可以把�
 
 ## 试用面板
 
-最新的 Rust 本地版本是 **2.1.4**，适用于 Apple 芯片的 macOS。[下载并查看发布说明](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.1.4)。下载后需要解压，并将其中的 `bin/token-weather-core` 注册到兼容的本地 MCP 宿主；仅下载不会自动安装或连接。详细步骤和校验值见[版本记录](docs/RUST-LOCAL-2.1.4.md)。
+最新的 Rust 本地版本是 **2.1.6**，适用于 Apple 芯片的 macOS。[下载并查看发布说明](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.1.6)。下载后需要解压，并将其中的 `bin/token-weather-core` 注册到兼容的本地 MCP 宿主；仅下载不会自动安装或连接。详细步骤和校验值见[版本记录](docs/RUST-LOCAL-2.1.6.md)。
 
 在 Codex 聊天侧栏打开 **Token Weather Context**。天气刻度和 Token details 默认展开，MCP servers 可以按需打开。首次成功读数或显式调用工具时播放入场动画；切回面板和后台刷新不会重播。系统的「减少动态效果」设置会关闭入场动画。
 
 想先预览，又不连接自己的聊天？在干净的仓库副本中使用发布版本源码：
 
 ```sh
-git switch --detach rust-v2.1.4
+git switch --detach rust-v2.1.6
 cargo build --release --locked --manifest-path rust/token-weather-core/Cargo.toml
 rust/token-weather-core/target/release/token-weather-core serve --demo
 ```
