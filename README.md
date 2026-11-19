@@ -32,7 +32,7 @@ Open the local address printed in the terminal and use **Debug state** to switch
 
 ## Try the scenario planner
 
-The [Cloudflare plugin package 1.0.1](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.1) supports updates to the existing Token Weather plugin draft. It uses the existing `context-budget` MCP to calculate with numbers you enter. The Rust desktop download above provides live Codex chat readings.
+The **Token Weather plugin 1.0.1** update has been submitted to the OpenAI plugin platform. Its [Cloudflare package and checksums](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.1) are also available on GitHub. It retains the existing `context-budget` MCP and calculates budgets from numbers you enter. The Rust desktop download above provides local Codex chat readings. See the [release notes](docs/RELEASE-NOTES.md#cloudflare-plugin-101) for details.
 
 To run the local scenario demo, use Python 3.9 or newer from the repository folder:
 

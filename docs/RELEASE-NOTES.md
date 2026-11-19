@@ -1,4 +1,14 @@
-# Token Weather open-source 1.0.0
+# Release notes
+
+## Cloudflare plugin 1.0.1
+
+The 1.0.1 update has been submitted to the OpenAI plugin platform. The [GitHub release](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.1) includes the plugin ZIP and SHA-256 checksums.
+
+- Retains the existing `context-budget` Streamable HTTP MCP and review metadata.
+- Plans token budgets and a five-turn outlook from user-supplied numeric inputs. The remote calculator does not read chat records or local files.
+- Keeps optional local weather, replay and checkpoint tools separate from the remote calculator. The [Rust desktop release 2.1.6](https://github.com/FeidaWang/Token-Weather/releases/tag/rust-v2.1.6) is a separate local distribution for Codex chat readings.
+
+## Open-source edition 1.0.0
 
 Released on 11 October 2026. MIT source, with no publisher-hosted shared budget service. This edition is separate from the earlier pure-skills 1.0.0 candidate and has not been submitted or approved in the plugin directory.
 

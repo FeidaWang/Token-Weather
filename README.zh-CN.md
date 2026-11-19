@@ -32,7 +32,7 @@ rust/token-weather-core/target/release/token-weather-core serve --demo
 
 ## 试用预算计算器
 
-[Cloudflare 插件包 1.0.1](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.1) 用于更新现有的 Token Weather 草稿，沿用 `context-budget` MCP，根据输入的数字计算预算。读取 Codex 聊天用量请使用上方的 Rust 桌面版。
+**Token Weather 插件 1.0.1** 更新已推送至 OpenAI 插件平台。[Cloudflare 发行包与校验文件](https://github.com/FeidaWang/Token-Weather/releases/tag/v1.0.1)也可在 GitHub 下载。该版本沿用 `context-budget` MCP，根据输入的数字计算预算。读取本地 Codex 聊天用量请使用上方的 Rust 桌面版。详情请看[版本记录](docs/RELEASE-NOTES.md#cloudflare-plugin-101)。
 
 如需运行本地演示，在仓库目录中使用 Python 3.9 或更高版本：
 
